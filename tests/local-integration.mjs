@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+const base=process.env.APP_URL||'http://localhost:5173';
+if(!['localhost','127.0.0.1'].includes(new URL(base).hostname)||!process.env.DB_NAME?.startsWith('club_hostinger_test_'))throw new Error('Integration tests require the isolated local test database.');
+const initial=await fetch(base+'/api/content').then(r=>r.json());assert.ok(initial.content.name);
+const denied=await fetch(base+'/api/content',{method:'PUT',headers:{origin:base,'content-type':'application/json'},body:JSON.stringify(initial)});assert.equal(denied.status,403);
+const login=await fetch(base+'/api/auth/login',{method:'POST',headers:{origin:base,'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({email:process.env.ADMIN_EMAIL,password:process.env.TEST_ADMIN_PASSWORD}),redirect:'manual'});const cookie=login.headers.getSetCookie().map(c=>c.split(';')[0]).join('; ');assert.ok(cookie);
+const headers={cookie,origin:base,'content-type':'application/json'};
+const invalid=await fetch(base+'/api/content',{method:'PUT',headers,body:JSON.stringify({...initial,content:{...initial.content,name:''}})});assert.equal(invalid.status,400);
+const csrf=await fetch(base+'/api/content',{method:'PUT',headers:{...headers,origin:'https://other.example'},body:JSON.stringify(initial)});assert.equal(csrf.status,403);
+const save=await fetch(base+'/api/content',{method:'PUT',headers,body:JSON.stringify(initial)});assert.equal(save.status,200,await save.text());
+const readback=await fetch(base+'/api/content').then(r=>r.json());assert.deepEqual(readback.content,initial.content);assert.equal(readback.version,initial.version+1);
+const conflict=await fetch(base+'/api/content',{method:'PUT',headers,body:JSON.stringify(initial)});assert.equal(conflict.status,409);
+const bad=new FormData();bad.append('file',new File(['not an image'],'bad.jpg',{type:'image/jpeg'}));const invalidPhoto=await fetch(base+'/api/upload',{method:'POST',headers:{cookie,origin:base},body:bad});assert.equal(invalidPhoto.status,400);
+const valid=new FormData();valid.append('file',new File([Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aLRkAAAAASUVORK5CYII=','base64')],'test.png',{type:'image/png'}));const photo=await fetch(base+'/api/upload',{method:'POST',headers:{cookie,origin:base},body:valid});assert.equal(photo.status,200);const {url}=await photo.json();const image=await fetch(base+url);assert.equal(image.status,200);assert.equal(image.headers.get('content-type'),'image/png');
+console.log('PASS: saved content and read-back, version conflict, unauthorised writes, cross-origin rejection, validation, invalid upload rejection, photo upload and retrieval. Test data kept only in the local development database.');
