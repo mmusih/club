@@ -9,7 +9,7 @@ export const samplePlayers: PublicPlayer[] = [
   {name:'Taylor — Sample', ageGroup:'Over 15', position:'Forward', foot:'Left', number:11, bio:'An energetic wide forward who likes taking on defenders and creating chances. Taylor is developing movement into the penalty area, accurate crossing and the ability to press as part of a team.'},
 ].map((p,index)=>({
   ...p, position:p.position as PublicPlayer['position'], foot:p.foot as PublicPlayer['foot'],
-  id:'sample-'+(index+1), photo:'', updatedAt:'2026-09-24',
+  id:'sample-'+(index+1), photo:index===4?'/images/players/fictional1.webp':'/images/players/fictional2.avif', updatedAt:'2026-09-24',
   bio:'Fictional sample profile for the website preview. '+p.bio,
   videos:[],
   matches:[
