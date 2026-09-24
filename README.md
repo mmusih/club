@@ -25,3 +25,11 @@ Build: `npm run build`. Production: `npm start` (honours `PORT`). Published edit
 Integration scripts in `tests/` require an isolated local database named `club_hostinger_test_*` and `.env.hostinger-test`, including a generated `TEST_ADMIN_PASSWORD`. Run `node --env-file=.env.hostinger-test tests/local-integration.mjs`, then `tests/players-integration.mjs` and `tests/hostinger-auth-integration.mjs` using the same prefix. Tests exercise publishing, conflicts, player privacy, authentication, throttling and uploads. Never run these against production.
 
 Photo attribution remains in ACADEMY-PHOTO-SOURCES.md. Programme schedules and venue copy still need club confirmation.
+
+## News and fixtures
+
+Use **Club dashboard → Club news** to add stories, dates, categories and a photo from the gallery. The newest story leads the news wall; visitors can filter categories and open full stories.
+
+Use **Club dashboard → Fixtures** to edit the match table. Add the academy team, opponent, date, local kick-off time, venue and competition. Mark completed games **Played** and enter both scores (academy first); they appear under **Results**. Postponed and cancelled games retain their status. Changes become public only after **Publish changes**. Existing saved content automatically starts with an empty fixtures list; no database migration is needed.
+
+The sticky homepage header, scroll progress, hero parallax and section reveals respect reduced-motion preferences. Run `tests/fixtures-integration.mjs` with the isolated test environment to verify news/fixture persistence and validation; the script restores the original test content.
