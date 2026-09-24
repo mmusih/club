@@ -1,5 +1,5 @@
 'use client';
-import {useState, type CSSProperties} from 'react';
+import type {CSSProperties} from 'react';
 
 const characters = [
   {skin:'#a96946',hair:'#20252d',kit:'#d5f36a',accent:'#173143',back:'#dce8bf',style:0},
@@ -11,8 +11,7 @@ const characters = [
 
 export default function SampleAvatar({id,name,number}:{id:string;name:string;number:number|''}) {
   const c=characters[Math.max(0,(Number(id.split('-')[1])||1)-1)%characters.length];
-  const [paused,setPaused]=useState(false);
-  return <div className={'sample-avatar'+(paused?' is-paused':'')} style={{'--avatar-bg':c.back} as CSSProperties}>
+  return <div className="sample-avatar" style={{'--avatar-bg':c.back} as CSSProperties}>
     <svg viewBox="0 0 360 400" role="img" aria-label={'Animated fictional football character for '+name}>
       <circle cx="180" cy="184" r="142" fill="white" opacity=".36"/>
       <path d="M20 328H340M65 346H295" stroke="white" strokeWidth="2" opacity=".5"/>
@@ -52,6 +51,6 @@ export default function SampleAvatar({id,name,number}:{id:string;name:string;num
         <path d="M277 323V310M289 332L302 328M284 345L291 359M270 345L261 358M265 332L252 329" fill="none"/>
       </g>
     </svg>
-    <button className="avatar-motion" type="button" aria-label={(paused?'Play':'Pause')+' character animation for '+name} aria-pressed={paused} onClick={e=>{e.preventDefault();e.stopPropagation();setPaused(!paused)}}>{paused?'▶':'Ⅱ'}</button>
+    <label className="avatar-motion"><input type="checkbox" aria-label={'Pause character animation for '+name}/><span className="avatar-pause" aria-hidden="true">Ⅱ</span><span className="avatar-play" aria-hidden="true">▶</span></label>
   </div>;
 }
