@@ -13,8 +13,8 @@ export const samplePlayers: PublicPlayer[] = [
   bio:'Fictional sample profile for the website preview. '+p.bio,
   videos:[],
   matches:[
-    {id:'sample-match-1',date:'2026-09-19',season:'2026',opponent:'Sample United',minutes:70,goals:p.position==='Forward'?2:0,assists:p.position==='Midfielder'?2:1,saves:p.position==='Goalkeeper'?6:0},
-    {id:'sample-match-2',date:'2026-09-12',season:'2026',opponent:'Demo Rovers',minutes:65,goals:p.position==='Forward'?1:0,assists:p.position==='Midfielder'?1:0,saves:p.position==='Goalkeeper'?4:0},
-    {id:'sample-match-3',date:'2025-11-22',season:'2025',opponent:'Example City',minutes:60,goals:p.position==='Midfielder'?1:0,assists:p.position==='Forward'?1:0,saves:p.position==='Goalkeeper'?5:0},
+    {id:'sample-match-1',date:'2026-09-19',season:'2026/27',opponent:'Sample United',minutes:70,goals:p.position==='Forward'?2:0,assists:p.position==='Midfielder'?2:1,saves:p.position==='Goalkeeper'?6:0,contributions:[...(p.position==='Forward'?[{id:'sample-goal',kind:'goal' as const,minute:24,partner:'Sam — Sample'}]:[]),{id:'sample-assist',kind:'assist' as const,minute:61,partner:index===0?'Taylor — Sample':'Alex — Sample'}]},
+    {id:'sample-match-2',date:'2026-09-12',season:'2026/27',opponent:'Demo Rovers',minutes:65,goals:p.position==='Forward'?1:0,assists:p.position==='Midfielder'?1:0,saves:p.position==='Goalkeeper'?4:0},
+    {id:'sample-match-3',date:'2025-11-22',season:'2025/26',opponent:'Example City',minutes:60,goals:p.position==='Midfielder'?1:0,assists:p.position==='Forward'?1:0,saves:p.position==='Goalkeeper'?5:0},
   ],
 }));

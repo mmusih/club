@@ -8,5 +8,5 @@ export const dynamic='force-dynamic';
 export const metadata={title:'Our players | Football Academy'};
 export default async function Players(){
  let data;try{data=await Promise.all([readContent(),publicPlayers()]);}catch{return <main className="section"><h1>Players are temporarily unavailable.</h1><p>Please try again in a moment.</p><Link className="button navy" href="/players">Try again</Link></main>;}
- const [{content},players]=data;return <><Header name={content.name} logo={content.logo}/><Directory players={players.length?players:samplePlayers} cover={content.hero} club={content.name}/></>;
+ const [{content},players]=data;return <><Header name={content.name} logo={content.logo} sections={content.sections}/><Directory players={players.length?players:samplePlayers} cover={content.hero} club={content.name}/></>;
 }

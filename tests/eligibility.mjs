@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import {ageToday,clubToday,divisionMaximum,eligibilityIssue} from '../app/player-eligibility.ts';
+assert.equal(clubToday(new Date('2026-10-02T22:05:00Z')),'2026-10-03');
+assert.equal(ageToday('2014-10-04','2026-10-03'),11);
+assert.equal(ageToday('2014-10-03','2026-10-03'),12);
+assert.equal(ageToday('2027-01-01','2026-10-03'),null);
+assert.equal(ageToday('2014-02-30','2026-10-03'),null);
+assert.equal(ageToday('2016-02-29','2027-02-28'),10);
+assert.equal(ageToday('2016-02-29','2027-03-01'),11);
+for(const [division,max] of [['Under 13',11],['U13',11],['Boys’ Under-17',15],['under 21',19],['Senior',null],['Over 15',null]])assert.equal(divisionMaximum(division),max);
+assert.equal(eligibilityIssue({ageGroup:'Under 13',dateOfBirth:'2014-10-04'},'2026-10-03'),null);
+assert.match(eligibilityIssue({ageGroup:'Under 13',dateOfBirth:'2014-10-03'},'2026-10-03'),/11 or younger/);
+assert.match(eligibilityIssue({ageGroup:'Under 13'},'2026-10-03'),/birth date/);
+assert.equal(eligibilityIssue({ageGroup:'Senior'},'2026-10-03'),null);
+console.log('PASS: birthday boundary, leap birthdays, Botswana date, division aliases and required birth dates.');
