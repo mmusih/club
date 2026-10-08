@@ -35,7 +35,7 @@ export function Fixtures({content:c}:{content:Content}) {
   let active=true;
   async function refresh(){
    setNow(Date.now());
-   try{const response=await fetch('/api/content',{cache:'no-store'});if(!response.ok)throw new Error();const data=await response.json();if(active){setFixtures(data.content.fixtures||[]);setLoadError(false)}}catch{if(active)setLoadError(true)}
+   try{const response=await fetch('/api/content',{cache:'no-store'});if(!response.ok)throw new Error();const data=await response.json();if(active){setFixtures((data.content.fixtures||[]).map((f:Fixture)=>({...f,...(f.match?.phase==='live'&&f.status==='scheduled'?{liveMinute:f.match.minute}:{})})));setLoadError(false)}}catch{if(active)setLoadError(true)}
   }
   void refresh();const timer=setInterval(refresh,15000);
   return()=>{active=false;clearInterval(timer)};
@@ -48,14 +48,14 @@ export function Fixtures({content:c}:{content:Content}) {
   const score=academy?f.goalsFor:f.goalsAgainst;
   return <div className={'fixture-team-row'+(home?' home-team':'')}>
    {home||academy?<button className="fixture-team-name" onClick={()=>setSelected(f.id)} aria-label={'View '+f.team+' lineup for '+name+' vs '+(academy?f.opponent:c.name)}>{badge(logo,name)}<span>{name}<small>{home?'Home':f.homeAway==='neutral'?'Neutral venue':'Away'}{academy?' · '+fixtureTeamName(c,f.team):''}</small></span></button>:<div className="fixture-team-name">{badge(logo,name)}<span>{name}<small>{f.homeAway==='neutral'?'Neutral venue':'Away'}</small></span></div>}
-   <b className="fixture-row-score">{f.status==='played'?score:'–'}</b>
+   <b className="fixture-row-score">{f.status==='played'||f.liveMinute!==undefined?score:'–'}</b>
   </div>;
  }
  return <section className="section fixtures-section" id="fixtures"><div className="section-heading"><div><p className="eyebrow">ON THE CALENDAR. ON THE PITCH.</p><h2>MATCH<br/><em>CENTRE.</em></h2></div><p>Every team. Every match day.<br/>Follow the next chapter.</p></div>
  <div className="fixtures-toolbar"><div className="fixture-tabs" aria-label="Match view">{(['Upcoming','Results','Other matches'] as const).map(v=><button key={v} aria-pressed={view===v} onClick={()=>setView(v)}>{v}</button>)}</div><label>Season <select value={season} onChange={e=>setSeason(e.target.value)}>{seasonOptions(fixtures.map(f=>f.season||seasonForDate(f.date))).map(s=><option key={s}>{s}</option>)}</select></label><label>Team <select value={team} onChange={e=>setTeam(e.target.value)}><option>All teams</option>{fixtureTeams({...c,fixtures}).map(t=><option key={t}>{t}</option>)}</select></label></div>
  <div className="fixture-cards">{matches.map(f=><article className="fixture-card" key={f.id}>
   <header><span>{f.competition||'Competition TBC'}</span><span>{fixtureTeamName(c,f.team)}</span></header>
-  <div className="fixture-card-body"><div className="fixture-kickoff"><time dateTime={f.date}>{displayDate(f.date)}</time><strong>{f.time||'Time TBC'}</strong><span>{({scheduled:'Scheduled',played:'Full time',postponed:'Postponed',cancelled:'Cancelled'})[f.status]}</span></div>
+  <div className="fixture-card-body"><div className="fixture-kickoff"><time dateTime={f.date}>{displayDate(f.date)}</time><strong>{f.time||'Time TBC'}</strong><span>{f.liveMinute!==undefined?'Live · '+f.liveMinute+'′':({scheduled:'Scheduled',played:'Full time',postponed:'Postponed',cancelled:'Cancelled'})[f.status]}</span></div>
   <div className="fixture-teams">{teamRow(f,f.homeAway!=='away',f.homeAway!=='neutral')}{teamRow(f,f.homeAway==='away',false)}</div></div>
   <div className="fixture-card-footer"><span>{f.venue||'Venue TBC'}{f.homeAway==='neutral'?' · Neutral venue':''}</span><button onClick={()=>setSelected(f.id)}>Academy lineup <ArrowUpRight size={15}/></button></div>
  </article>)}</div>
@@ -72,7 +72,7 @@ function AcademyLineup({fixture,club}:{fixture:Fixture;club:string}){
  let offset=0;
  const rows=[1,...lineup.formation.split('-').map(Number)].map(count=>{const row=lineup.starters.slice(offset,offset+count);offset+=count;return row}).reverse();
  return <div className="academy-lineup"><div className="lineup-heading"><strong>{club}</strong><span>{lineup.formation}</span></div>
- {lineup.image?<Photo className="lineup-graphic" src={lineup.image} alt={fixture.team+' match lineup'}/>:<div className="lineup-pitch"><div className="pitch-circle" aria-hidden="true"/>{rows.map((row,i)=><div className="lineup-row" key={i}>{row.map((name,j)=>{const number=name.match(/^([0-9]{1,2})[.\s-]+/);return <div className="lineup-player" key={j}><span className="lineup-shirt">{number?number[1]:'●'}</span><span>{number?name.slice(number[0].length):name}</span></div>})}</div>)}</div>}
+ {lineup.image?<Photo className="lineup-graphic" src={lineup.image} alt={fixture.team+' match lineup'}/>:<div className="lineup-pitch"><div className="pitch-circle" aria-hidden="true"/>{rows.map((row,i)=><div className="lineup-row" key={i}>{row.map((name,j)=>{const number=name.match(/^([0-9]{1,2})[.\s-]+/);return <div className="lineup-player" key={j}>{lineup.portraits?.[name]?<Photo className="lineup-headshot" src={lineup.portraits[name]} alt=""/>:<span className="lineup-shirt">{number?number[1]:'●'}</span>}<span>{number?name.slice(number[0].length):name}</span></div>})}</div>)}</div>}
  {lineup.image&&lineup.starters.length>0&&<p className="lineup-names">Starting lineup: {lineup.starters.join(' · ')}</p>}
  {lineup.substitutes.length>0&&<div className="lineup-subs"><h3>Substitutes</h3><ul>{lineup.substitutes.map((name,i)=><li key={i}>{name}</li>)}</ul></div>}
  </div>;

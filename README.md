@@ -53,3 +53,17 @@ For an **Under N** division, a player must be **N − 2 or younger today**, usin
 ## Client delivery
 
 See CLIENT-HANDOVER.md for upload and editing instructions. News stories now have shareable pages. Joining enquiries prepare an email in the visitor’s email app; the website does not send or store the message. Club-content drafts can be recovered in the same browser tab after a refresh. Upcoming fixtures exclude cancellations, postponements and past unplayed dates. Delivery demos are explicitly enabled through Demo content; removing them keeps them removed, including direct profile URLs.
+
+## Fixtures, match tracking and supporters
+
+In **Fixtures**, define a named competition (league, promotional playoff, cup, friendly or custom), then select the team and competition before adding a fixture. Existing text competitions remain readable and can be linked to a defined competition.
+
+Open **Lineup & live match tracker**, choose a formation, and drag profile players onto the pitch. On touch screens or with a keyboard, select a player and then a position; selecting a position first also works. Players are grouped by position and filtered by the fixture's age group, with an option to show all eligible age groups. Add reserves to the bench before starting the match.
+
+Start the match, advance the current minute manually, and select a player on the pitch to record goals, assists, cards, injuries or substitutions. The second yellow or a red card removes a player; substitute minutes are calculated from the event times. Returning substitutes are supported. An injury records the incident; use a substitution to record the player leaving. Finish at the actual final minute, including stoppage time. Increase the match length for extra time when needed. Goals set the academy score; enter the opponent score separately. Undo incorrect events in the match log; remove dependent later events first if necessary.
+
+Use **Publish changes** to save the match and update the public match centre and player statistics. Linked fixture statistics are derived from the saved match record, so repeated saves do not add duplicate appearances. Edit linked records through Fixtures; manually entered historical records remain separate. Draft/unconsented player portraits and names are not included in the public linked lineup.
+
+The **Supporters** dashboard section manages the public **/supporters** page. Upload multiple photos and add interviews using YouTube, Vimeo, or HTTPS MP4/WebM links. Visitors can filter photos and interviews, browse pages, and open photos or videos. Publish changes after editing.
+
+Run the match model regression checks with `node tests/match-record.mjs`.

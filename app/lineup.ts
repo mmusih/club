@@ -8,8 +8,10 @@ export function lineupAvailable(f:Fixture,now=Date.now()) {
 }
 export function publicContent(content:Content,now=Date.now()):Content {
   return {...content,fixtures:(content.fixtures||[]).map(f=>{
-    if(lineupAvailable(f,now)) return f;
-    const {lineup: hidden,...visible}=f;
+    const {match: privateMatch,...safe}=f;
+    if(privateMatch?.phase==='live'&&f.status==='scheduled')safe.liveMinute=privateMatch.minute;
+    if(lineupAvailable(f,now)) return safe;
+    const {lineup: hidden,...visible}=safe;
     void hidden;
     return visible;
   })};

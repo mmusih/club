@@ -60,3 +60,15 @@ Training venue and schedules remain honestly labelled “to be confirmed” unti
 Back up MySQL regularly: it contains published content, player records and uploaded photos. Keep SQL exports and environment files out of the public website. Keep the hosting account and dependencies maintained. Admin sessions expire after eight hours; sign out on shared devices. Password recovery is managed by generating a new hash and updating the hosting environment, not by an email reset link.
 
 Live HTTPS, production database connectivity and production login must be checked after upload. Local verification is recorded separately in `outputs/RELEASE-CHECKS.md`.
+
+## 8 October 2026 update
+
+For an existing installation, upload the new application ZIP and keep the existing database and environment settings. This update does not require a database schema migration or a fresh SQL import.
+
+- The darker navy and lime palette is restored.
+- In Fixtures, define named competitions and select a team and competition before adding a match.
+- Open Lineup & live match tracker to choose a formation and place player profiles on the pitch by dragging or selecting. Add the substitutes bench before starting.
+- Advance the match minute manually; select players to record goals, assists, cards, injuries and substitutions. Publish changes to update live scores and player statistics. Goals calculate the academy score; enter the opponent score separately.
+- In Supporters, upload fan photos and add video interview links. The public page is /supporters.
+
+The production build, type checks and match-model regression tests passed for this update. Database save/reload and browser verification of the new features remain outstanding because the local test database and browser preview were unreachable.
