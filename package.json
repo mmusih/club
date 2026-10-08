@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev --port 5173",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern .sites-runtime --ignore-pattern .wrangler --ignore-pattern outputs --ignore-pattern vendor --ignore-pattern examples",
     "db:generate": "drizzle-kit generate",

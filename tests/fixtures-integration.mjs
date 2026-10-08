@@ -8,7 +8,7 @@ const cookie=login.headers.getSetCookie().map(c=>c.split(';')[0]).join('; ');
 assert.ok(cookie);
 const headers={cookie,origin:base,'content-type':'application/json'};
 let version=initial.version;
-const fixture={id:'fixture-integration',date:'2026-10-03',time:'15:30',team:'Under 17',opponent:'Test opposition',competition:'Friendly',venue:'Test ground',homeAway:'home',status:'scheduled',goalsFor:null,goalsAgainst:null};
+const fixture={id:'fixture-integration',date:new Date(Date.now()+86400000).toISOString().slice(0,10),time:'15:30',team:'Under 17',opponent:'Test opposition',competition:'Friendly',venue:'Test ground',homeAway:'home',status:'scheduled',goalsFor:null,goalsAgainst:null};
 const story={id:'news-integration',title:'Match-day preview',date:'2026-09-24',body:'A test story for the news wall.',image:initial.content.hero,category:'Match days'};
 const content={...initial.content,fixtures:[fixture],news:[story]};
 async function save(value){return fetch(base+'/api/content',{method:'PUT',headers,body:JSON.stringify({version,content:value})})}
@@ -17,6 +17,8 @@ try {
  const saved=await save(content);assert.equal(saved.status,200);version=(await saved.json()).version;
  const readback=await fetch(base+'/api/content').then(r=>r.json());assert.deepEqual(readback.content.fixtures,[fixture]);assert.deepEqual(readback.content.news,[story]);
  const page=await fetch(base).then(r=>r.text());assert.ok(page.includes('Test opposition'));assert.ok(page.includes('Match-day preview'));
+ const storyPage=await fetch(base+'/news/'+story.id);assert.equal(storyPage.status,200);const storyHtml=await storyPage.text();assert.ok(storyHtml.includes(story.body));assert.ok(storyHtml.includes('og:title'));
+ const missingStory=await fetch(base+'/news/nonexistent-launch-check');assert.equal(missingStory.status,404);
  const played={...content,fixtures:[{...fixture,status:'played',goalsFor:0,goalsAgainst:2}]};
  const result=await save(played);assert.equal(result.status,200);version=(await result.json()).version;
  const scores=await fetch(base+'/api/content').then(r=>r.json());assert.equal(scores.content.fixtures[0].goalsFor,0);

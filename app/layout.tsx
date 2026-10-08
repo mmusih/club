@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.APP_URL || "https://eyesontheball.co.bw"),
   title: "Eyes On The Ball Academy | Football",
   description: "A welcoming place for young players to learn, play, and belong.",
   icons: {

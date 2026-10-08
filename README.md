@@ -13,7 +13,7 @@ See [HOSTINGER.md](HOSTINGER.md) for deployment and configuration. Run this as a
 ## Local development
 
 1. Install dependencies with `npm ci` (Node.js 22.13+; Node.js 24 recommended).
-2. Copy `.env.example` to `.env` and set a local MySQL database, `APP_URL`, and administrator settings.
+2. Copy `.env.example` to `.env`, set `APP_URL=http://localhost:5173` for local development, and configure local MySQL and administrator settings.
 3. Run `npm run db:migrate` to create tables. An empty database uses the academy seed content until first publication.
 4. Run `npm run admin:password` to generate an admin password hash and save it as `ADMIN_PASSWORD_HASH` in your environment.
 5. Run `npm run dev` and open http://localhost:5173. Admin sign-in is at `/admin/login`.
@@ -49,3 +49,7 @@ Validation: `node --env-file=.env.hostinger-test tests/club-records-integration.
 Use **Homepage sections** in the club dashboard to show or hide each homepage section. Publish to apply changes. Hidden sections keep their saved content; links to hidden sections are removed from the homepage. This is a display setting, not access control: the public content API and direct player pages remain accessible.
 
 For an **Under N** division, a player must be **N − 2 or younger today**, using the club's date in Africa/Gaborone (Under 13: 11 or younger; Under 17: 15 or younger; Under 21: 19 or younger). Add a private date of birth in Player details. Invalid or missing birth dates block assignment to an Under division. Birth dates are excluded from public player responses and pages. Public reads check eligibility again so a player who ages out no longer appears until staff chooses an eligible division. Existing Under profiles without birth dates are flagged for review in the admin and hidden until corrected. Senior and other non-Under groups do not use this upper-age rule.
+
+## Client delivery
+
+See CLIENT-HANDOVER.md for upload and editing instructions. News stories now have shareable pages. Joining enquiries prepare an email in the visitor’s email app; the website does not send or store the message. Club-content drafts can be recovered in the same browser tab after a refresh. Upcoming fixtures exclude cancellations, postponements and past unplayed dates. Delivery demos are explicitly enabled through Demo content; removing them keeps them removed, including direct profile URLs.

@@ -11,3 +11,7 @@ Downloaded from the academy's publicly accessible Facebook page on 22 September 
 | matchday-team.jpg | https://www.facebook.com/photo/?fbid=1010536888162334 | Team line-up; 1296 × 864 |
 
 The photos are local website assets, not expiring Facebook CDN links. The displayed contact email and phone were read from the page's Intro section. They are public enquiry contacts, not an editor-access configuration.
+
+## Demo player portraits — 5 October 2026
+
+User-supplied images used only on clearly labelled fictional demo profiles. Alex: 11_year_old.png; Jamie: 13_year_old_soccer_player_web.png; Sam: 17_year_old_soccer_player_web.png; Jordan: 11_year-1.png; Taylor: 11_year2.png. The supplied 11_year3.png is byte-identical to 11_year_old.png and shares the Alex portrait. Original files are copied unchanged into public/images/players/demo-*.png.

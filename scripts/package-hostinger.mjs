@@ -10,7 +10,7 @@ function add(name) {
 }
 for(const name of ['app','components','db','drizzle/mysql','hooks','lib','public','tests',
   'package.json','package-lock.json','next.config.ts','next-env.d.ts','tsconfig.json',
-  'postcss.config.mjs','eslint.config.mjs','drizzle.config.ts','.env.example','.npmrc','README.md','HOSTINGER.md','ACADEMY-PHOTO-SOURCES.md',
+  'postcss.config.mjs','eslint.config.mjs','drizzle.config.ts','.env.example','.npmrc','README.md','CLIENT-HANDOVER.md','HOSTINGER.md','ACADEMY-PHOTO-SOURCES.md',
   'scripts/mysql-connection.mjs','scripts/migrate-mysql.mjs','scripts/admin-password.mjs','scripts/import-content.mjs','scripts/package-hostinger.mjs']) add(name);
 if(files.some(f=>/(^|\/)\.env(?!\.example$)/.test(f))) throw new Error('Secret environment file found in package.');
 fs.mkdirSync('outputs',{recursive:true});

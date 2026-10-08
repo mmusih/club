@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import {createHash} from 'node:crypto';
-const bundle=JSON.parse(fs.readFileSync('outputs/content-migration.json','utf8'));
+const bundle=JSON.parse(fs.readFileSync(process.argv[2]||'outputs/content-migration.json','utf8'));
 const hex=value=>"X'"+Buffer.from(String(value),'utf8').toString('hex')+"'";
 let sql='-- Import into a NEW, EMPTY Hostinger MySQL database. Contains private site data.\nSET NAMES utf8mb4;\n';
 sql+='CREATE TABLE club_migrations (name VARCHAR(255) PRIMARY KEY, checksum VARCHAR(64) NOT NULL);\n';

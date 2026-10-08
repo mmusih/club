@@ -5,7 +5,7 @@ This is a Next.js server application. Use Hostinger's **Deploy Web App / Node.js
 ## Prepared files
 
 - `outputs/hostinger-upload.zip`: website source, package lockfile and MySQL migrations. No passwords, local database files, or private data exports.
-- `outputs/hostinger-database.sql`: schema and preserved local content, five player records and uploaded images. Import this separately through phpMyAdmin into a **new, empty database**. Keep it private; do not place it in `public_html` or commit it.
+- `outputs/hostinger-database.sql`: schema, preserved academy content and uploaded images, five draft player records, plus labelled demo content and five separate sample profiles. Import this separately through phpMyAdmin into a **new, empty database**. Keep it private; do not place it in `public_html` or commit it.
 - `outputs/content-migration.json`: private backup of the original local D1/R2 content. The original `.wrangler` data is also retained.
 
 ## Deployment
@@ -21,7 +21,7 @@ This is a Next.js server application. Use Hostinger's **Deploy Web App / Node.js
 
 | Variable | Value |
 | --- | --- |
-| `APP_URL` | Exact public HTTPS origin, e.g. `https://your-domain.com`; no path |
+| `APP_URL` | Exact public HTTPS origin, e.g. `https://eyesontheball.co.bw`; no path |
 | `DB_HOST` | Host shown in Hostinger's database settings; usually `localhost` |
 | `DB_PORT` | `3306`, unless Hostinger specifies otherwise |
 | `DB_NAME` | Full database name, including Hostinger's prefix |
@@ -48,4 +48,4 @@ For later schema updates, back up MySQL and run `npm run db:migrate` with the pr
 
 ## Current status
 
-Local production build and MySQL-compatible integration tests have passed. The live upload, real Hostinger database connection, HTTPS and production login still require verification in the signed-in Hostinger account.
+See outputs/RELEASE-CHECKS.md for this delivery’s verification results. The live upload, real Hostinger database connection, HTTPS and production login require verification after upload. The client editing guide is CLIENT-HANDOVER.md.

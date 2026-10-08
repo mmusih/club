@@ -5,11 +5,11 @@ export const samplePlayers: PublicPlayer[] = [
   {name:'Alex — Sample', ageGroup:'Under 13', position:'Forward', foot:'Right', number:9, bio:'A lively forward who enjoys finding space and bringing teammates into the game. Alex is working on first-touch control, finishing with both feet and making confident runs behind the defence.'},
   {name:'Jamie — Sample', ageGroup:'Under 17', position:'Goalkeeper', foot:'Right', number:1, bio:'A calm goalkeeper with quick reactions and a strong voice behind the defence. Jamie enjoys organising the back line, starting attacks with accurate distribution and practising one-on-one saves.'},
   {name:'Sam — Sample', ageGroup:'Under 21', position:'Midfielder', foot:'Both', number:8, bio:'A creative midfielder who connects defence and attack with simple, thoughtful passing. Sam is developing awareness before receiving the ball and the confidence to dictate the tempo of a match.'},
-  {name:'Jordan — Sample', ageGroup:'Senior', position:'Defender', foot:'Left', number:4, bio:'A composed defender who reads the game and supports teammates on and off the pitch. Jordan focuses on well-timed tackles, aerial challenges and building possession from the back.'},
-  {name:'Taylor — Sample', ageGroup:'Over 15', position:'Forward', foot:'Left', number:11, bio:'An energetic wide forward who likes taking on defenders and creating chances. Taylor is developing movement into the penalty area, accurate crossing and the ability to press as part of a team.'},
+  {name:'Jordan — Sample', ageGroup:'Under 13', position:'Defender', foot:'Left', number:4, bio:'A composed defender who reads the game and supports teammates on and off the pitch. Jordan focuses on well-timed tackles, aerial challenges and building possession from the back.'},
+  {name:'Taylor — Sample', ageGroup:'Under 13', position:'Forward', foot:'Left', number:11, bio:'An energetic wide forward who likes taking on defenders and creating chances. Taylor is developing movement into the penalty area, accurate crossing and the ability to press as part of a team.'},
 ].map((p,index)=>({
   ...p, position:p.position as PublicPlayer['position'], foot:p.foot as PublicPlayer['foot'],
-  id:'sample-'+(index+1), photo:index===4?'/images/players/fictional1.webp':'/images/players/fictional2.avif', updatedAt:'2026-09-24',
+  id:'sample-'+(index+1), photo:'/images/players/demo-'+['alex','jamie','sam','jordan','taylor'][index]+'.png', updatedAt:'2026-10-05',
   bio:'Fictional sample profile for the website preview. '+p.bio,
   videos:[],
   matches:[
