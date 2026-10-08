@@ -72,3 +72,9 @@ For an existing installation, upload the new application ZIP and keep the existi
 - In Supporters, upload fan photos and add video interview links. The public page is /supporters.
 
 The production build, type checks and match-model regression tests passed for this update. Database save/reload and browser verification of the new features remain outstanding because the local test database and browser preview were unreachable.
+
+### Added time, headshots and league badges
+
+Set the normal match length before starting. First-half added minutes and Second-half added minutes can be updated as the referee announces additional time. Advance the clock to the end of the first half, select Half-time, then Start second half when play resumes. For a 90-minute match, enter 48 to show 45+3 and 95 to show 90+5. Both halves' added time count towards player minutes; the break does not. Record the actual first-half added minutes before starting the second half.
+
+Each player profile has an Upload headshot / photo control. Save the profile, then use Refresh photos in the lineup editor to load the latest images. Standings rows now have a club-logo upload and an existing-image selector. The academy row uses the academy logo unless a custom logo is set. Publish dashboard edits to display these changes.

@@ -3,7 +3,7 @@ import Photo from './photo';
 import {sectionVisible} from './sections';
 import {useEffect,useState} from 'react';
 import {Dialog,DialogContent,DialogTitle,DialogDescription} from '@/components/ui/dialog';
-import {fixtureTeamName,fixtureTeams,lineupAvailable} from './lineup';
+import {fixtureTeamName,fixtureTeams,lineupAvailable,formatMatchMinute,matchPeriod} from './lineup';
 import {clubToday} from './player-eligibility';
 import {inMatchView,type MatchView} from './fixture-view';
 import {ArrowUpRight,CalendarDays,ArrowRight,Newspaper} from 'lucide-react';
@@ -35,7 +35,7 @@ export function Fixtures({content:c}:{content:Content}) {
   let active=true;
   async function refresh(){
    setNow(Date.now());
-   try{const response=await fetch('/api/content',{cache:'no-store'});if(!response.ok)throw new Error();const data=await response.json();if(active){setFixtures((data.content.fixtures||[]).map((f:Fixture)=>({...f,...(f.match?.phase==='live'&&f.status==='scheduled'?{liveMinute:f.match.minute}:{})})));setLoadError(false)}}catch{if(active)setLoadError(true)}
+   try{const response=await fetch('/api/content',{cache:'no-store'});if(!response.ok)throw new Error();const data=await response.json();if(active){setFixtures((data.content.fixtures||[]).map((f:Fixture)=>({...f,...(f.match?.phase==='live'&&f.status==='scheduled'?{liveMinute:f.match.minute,liveClock:matchPeriod(f.match)==='interval'?'Half-time':formatMatchMinute(f.match)}:{})})));setLoadError(false)}}catch{if(active)setLoadError(true)}
   }
   void refresh();const timer=setInterval(refresh,15000);
   return()=>{active=false;clearInterval(timer)};
@@ -55,7 +55,7 @@ export function Fixtures({content:c}:{content:Content}) {
  <div className="fixtures-toolbar"><div className="fixture-tabs" aria-label="Match view">{(['Upcoming','Results','Other matches'] as const).map(v=><button key={v} aria-pressed={view===v} onClick={()=>setView(v)}>{v}</button>)}</div><label>Season <select value={season} onChange={e=>setSeason(e.target.value)}>{seasonOptions(fixtures.map(f=>f.season||seasonForDate(f.date))).map(s=><option key={s}>{s}</option>)}</select></label><label>Team <select value={team} onChange={e=>setTeam(e.target.value)}><option>All teams</option>{fixtureTeams({...c,fixtures}).map(t=><option key={t}>{t}</option>)}</select></label></div>
  <div className="fixture-cards">{matches.map(f=><article className="fixture-card" key={f.id}>
   <header><span>{f.competition||'Competition TBC'}</span><span>{fixtureTeamName(c,f.team)}</span></header>
-  <div className="fixture-card-body"><div className="fixture-kickoff"><time dateTime={f.date}>{displayDate(f.date)}</time><strong>{f.time||'Time TBC'}</strong><span>{f.liveMinute!==undefined?'Live · '+f.liveMinute+'′':({scheduled:'Scheduled',played:'Full time',postponed:'Postponed',cancelled:'Cancelled'})[f.status]}</span></div>
+  <div className="fixture-card-body"><div className="fixture-kickoff"><time dateTime={f.date}>{displayDate(f.date)}</time><strong>{f.time||'Time TBC'}</strong><span>{f.liveMinute!==undefined?f.liveClock==='Half-time'?'Half-time':'Live · '+(f.liveClock||f.liveMinute+'′'):({scheduled:'Scheduled',played:'Full time',postponed:'Postponed',cancelled:'Cancelled'})[f.status]}</span></div>
   <div className="fixture-teams">{teamRow(f,f.homeAway!=='away',f.homeAway!=='neutral')}{teamRow(f,f.homeAway==='away',false)}</div></div>
   <div className="fixture-card-footer"><span>{f.venue||'Venue TBC'}{f.homeAway==='neutral'?' · Neutral venue':''}</span><button onClick={()=>setSelected(f.id)}>Academy lineup <ArrowUpRight size={15}/></button></div>
  </article>)}</div>

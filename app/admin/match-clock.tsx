@@ -1,0 +1,16 @@
+'use client';
+import type {MatchRecord} from '../content';
+import {formatMatchMinute,matchLimits,matchPeriod} from '../lineup';
+
+export default function MatchClock({match:m,onChange,onMinuteChange}:{match:MatchRecord;onChange:(m:MatchRecord)=>void;onMinuteChange:(n:number)=>void}){
+ const limits=matchLimits(m),period=matchPeriod(m),offset=period==='second'?(m.firstHalfAdded||0):0;
+ const earliest=Math.max(period==='second'?limits.halfEnd:0,...m.events.map(e=>e.minute));
+ function clock(minute:number){if(Number.isInteger(minute)&&minute>=earliest&&minute<=(period==='first'?limits.halfEnd:limits.end)){onChange({...m,minute,period});onMinuteChange(minute)}}
+ return <><label>Normal match length<input type="number" min={2} max={150} disabled={m.phase!=='pre'} value={m.duration} onChange={e=>{const duration=Number(e.target.value);if(Number.isInteger(duration)&&duration>=2&&duration<=150)onChange({...m,duration})}}/></label>
+ <label>First-half added minutes<input type="number" min={0} max={30} disabled={period!=='first'||m.phase==='finished'} value={m.firstHalfAdded||0} onChange={e=>{const added=Number(e.target.value);if(Number.isInteger(added)&&added>=0&&added<=30&&m.minute<=limits.half+added)onChange({...m,firstHalfAdded:added,period})}}/></label>
+ <label>Second-half added minutes<input type="number" min={0} max={30} disabled={m.phase==='finished'} value={m.secondHalfAdded||0} onChange={e=>{const added=Number(e.target.value);if(Number.isInteger(added)&&added>=0&&added<=30&&m.minute<=m.duration+(m.firstHalfAdded||0)+added)onChange({...m,secondHalfAdded:added,period})}}/></label>
+ <label>Clock minute {period==='first'?'· first half':period==='interval'?'· half-time':'· second half'}<input type="number" min={earliest-offset} max={(period==='first'?limits.halfEnd:limits.end)-offset} disabled={m.phase!=='live'||period==='interval'} value={m.minute-offset} onChange={e=>clock(Number(e.target.value)+offset)}/></label>
+ <strong role="status">{m.phase==='pre'?'PRE-MATCH':m.phase==='finished'?'FULL TIME · '+formatMatchMinute(m):period==='interval'?'HALF-TIME':'LIVE · '+formatMatchMinute(m)}</strong>
+ {m.phase==='pre'?<button type="button" className="button lime" disabled={m.slots.some(id=>!id)} onClick={()=>onChange({...m,phase:'live',period:'first'})}>Start match</button>:m.phase==='live'?<>{period==='first'?<button type="button" className="button navy" disabled={m.minute!==limits.halfEnd} onClick={()=>onChange({...m,period:'interval'})}>Half-time at {limits.half}{m.firstHalfAdded?'+'+m.firstHalfAdded:''}′</button>:period==='interval'?<button type="button" className="button lime" onClick={()=>onChange({...m,period:'second'})}>Start second half</button>:<button type="button" className="button navy" onClick={()=>onChange({...m,phase:'finished'})}>Finish at {formatMatchMinute(m)}</button>}</>:<button type="button" className="button outline" onClick={()=>onChange({...m,phase:'live'})}>Correct match record</button>}
+ <p className="clock-help">Add the referee’s announced minutes for each half; you can increase them during play. For a 90-minute match, enter 48 for 45+3 and 95 for 90+5. Finish the first-half clock before selecting Half-time. The break does not count towards player minutes.</p></>;
+}

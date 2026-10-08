@@ -1,4 +1,25 @@
-import type {Content,Fixture} from './content';
+import type {Content,Fixture,MatchRecord} from './content';
+
+export function matchLimits(m:MatchRecord){return {half:Math.floor(m.duration/2),halfEnd:Math.floor(m.duration/2)+(m.firstHalfAdded||0),end:m.duration+(m.firstHalfAdded||0)+(m.secondHalfAdded||0)};}
+export function matchPeriod(m:MatchRecord){return m.period||(m.minute<=matchLimits(m).halfEnd?'first':'second');}
+/** Stored minutes are playing time, including added time but never the half-time break. */
+export function formatMatchMinute(m:MatchRecord,minute=m.minute,period: 'first'|'interval'|'second'=matchPeriod(m)){
+ const {half}=matchLimits(m),first=period!=='second',base=first?half:m.duration;
+ const clock=minute-(first?0:m.firstHalfAdded||0);
+ return (clock>base?`${base}+${clock-base}`:String(clock))+'′';
+}
+export function matchClockIssue(m:MatchRecord){
+ const limits=matchLimits(m);
+ if(m.minute>limits.end)return 'The clock cannot exceed normal time plus added time.';
+ if(m.period==='first'&&m.minute>limits.halfEnd)return 'Update first-half added time before advancing beyond half-time.';
+ if(m.period==='interval'&&m.minute!==limits.halfEnd)return 'Half-time must match the end of the first half, including added time.';
+ if(m.period==='second'&&m.minute<limits.halfEnd)return 'The second half cannot start before the first half ends.';
+ for(const e of m.events){
+  if(e.period==='first'&&e.minute>limits.halfEnd||e.period==='second'&&e.minute<limits.halfEnd)return 'An event is outside its recorded half.';
+  if(m.period==='first'&&e.period==='second')return 'Second-half events cannot be recorded in the first half.';
+ }
+ return null;
+}
 
 /** The academy publishes kickoff times in Africa/Gaborone (UTC+2, no DST). */
 export function lineupAvailable(f:Fixture,now=Date.now()) {
@@ -9,7 +30,7 @@ export function lineupAvailable(f:Fixture,now=Date.now()) {
 export function publicContent(content:Content,now=Date.now()):Content {
   return {...content,fixtures:(content.fixtures||[]).map(f=>{
     const {match: privateMatch,...safe}=f;
-    if(privateMatch?.phase==='live'&&f.status==='scheduled')safe.liveMinute=privateMatch.minute;
+    if(privateMatch?.phase==='live'&&f.status==='scheduled'){safe.liveMinute=privateMatch.minute;safe.liveClock=matchPeriod(privateMatch)==='interval'?'Half-time':formatMatchMinute(privateMatch);}
     if(lineupAvailable(f,now)) return safe;
     const {lineup: hidden,...visible}=safe;
     void hidden;
