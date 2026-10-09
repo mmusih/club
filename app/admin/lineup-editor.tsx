@@ -19,12 +19,12 @@ export default function LineupEditor({fixture:f,content,onChange}:{fixture:Fixtu
  const state=replayMatch(m),slots=m.phase==='pre'?m.slots:state.slots;
  const byId=(id:string)=>players.find(p=>p.id===id);
  function label(id:string){const p=byId(id);return p?`${p.number||''} ${p.name}`.trim():id?'Unavailable player':''}
- function portrait(id:string){const p=byId(id);return p?.photo?<img src={p.photo} alt=""/>:<span className="portrait-fallback">{p?.number||'+'}</span>}
+ function portrait(id:string){const p=byId(id);return p?.headshot?<img src={p.headshot} alt=""/>:<span className="portrait-fallback">{p?.number||'+'}</span>}
  function save(next:MatchRecord,nextFormation=formation){
   const clockIssue=matchClockIssue(next);if(clockIssue){setError(clockIssue);return}
   const result=replayMatch(next);if(result.errors.length){setError(result.errors[0]);return}
   setError('');const current=next.phase==='pre'?next.slots:result.slots;
-  const portraits=Object.fromEntries(players.filter(p=>p.photo&&[...next.slots,...next.bench].includes(p.id)).map(p=>[label(p.id),p.photo]));
+  const portraits=Object.fromEntries(players.filter(p=>p.headshot&&[...next.slots,...next.bench].includes(p.id)).map(p=>[label(p.id),p.headshot!]));
   onChange({match:next,lineup:{formation:nextFormation,starters:current.map(id=>label(id)||'Vacant position'),substitutes:next.bench.filter(id=>!current.includes(id)).map(label),portraits},...matchFixturePatch(f,next)});
  }
  function assign(index:number,id:string){

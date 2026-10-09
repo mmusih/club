@@ -77,7 +77,7 @@ The production build, type checks and match-model regression tests passed for th
 
 Set the normal match length before starting. First-half added minutes and Second-half added minutes can be updated as the referee announces additional time. Advance the clock to the end of the first half, select Half-time, then Start second half when play resumes. For a 90-minute match, enter 48 to show 45+3 and 95 to show 90+5. Both halves' added time count towards player minutes; the break does not. Record the actual first-half added minutes before starting the second half.
 
-Each player profile has an Upload headshot / photo control. Save the profile, then use Refresh photos in the lineup editor to load the latest images. Standings rows now have a club-logo upload and an existing-image selector. The academy row uses the academy logo unless a custom logo is set. Publish dashboard edits to display these changes.
+Each player profile has separate Upload profile photo and Upload headshot controls. Save the profile, then use Refresh photos in the lineup editor to load the latest images. Standings rows now have a club-logo upload and an existing-image selector. The academy row uses the academy logo unless a custom logo is set. Publish dashboard edits to display these changes.
 
 ## 9 October 2026 — scores and game information
 
@@ -88,3 +88,7 @@ All fixture details remain editable, including the academy team. Review the line
 ## Shared team logos
 
 Open Team logos in the club dashboard to upload a badge for each academy team or opponent, or reuse a gallery image. Publish changes once; the shared badge is used on team cards, fixtures, lineups, standings, staff/honours records, player profiles and match history, the joining form and supporters pages. Shared badges override older fixture or standings uploads. Academy teams inherit the academy badge until assigned their own; unknown opponents show a shield placeholder until a real badge is uploaded. Existing fixture and standings logos remain available as fallbacks. Select controls retain their accessible text options, with a badge beside the selected team where shown.
+
+### Separate profile photos and headshots
+
+Upload the public profile photo and the lineup headshot independently in Player profiles. The profile photo appears on the full public profile and large squad cards. The headshot appears on the lineup pitch, substitutes, replacement choices and compact editor lists. Each image has its own preview, replace and remove controls. Save the profile, then use Refresh photos in an open lineup editor. Existing photos remain profile photos; upload a separate headshot for compact displays. Until then, those displays use a shirt/number placeholder.

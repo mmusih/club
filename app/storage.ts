@@ -17,7 +17,7 @@ export async function readContent(includeLineups=false) {
     data.content={...data.content,fixtures:data.content.fixtures.map(f=>{
       if(!f.match||!f.lineup)return f;
       const slots=f.match.phase==='pre'?f.match.slots:replayMatch(f.match).slots;
-      return {...f,lineup:{formation:f.lineup.formation,starters:slots.map(id=>id?label(id):'Vacant position'),substitutes:f.match.bench.filter(id=>!slots.includes(id)).map(label),portraits:Object.fromEntries(players.filter(p=>p.photo&&[...f.match!.slots,...f.match!.bench].includes(p.id)).map(p=>[label(p.id),p.photo]))}};
+      return {...f,lineup:{formation:f.lineup.formation,starters:slots.map(id=>id?label(id):'Vacant position'),substitutes:f.match.bench.filter(id=>!slots.includes(id)).map(label),portraits:Object.fromEntries(players.filter(p=>p.headshot&&[...f.match!.slots,...f.match!.bench].includes(p.id)).map(p=>[label(p.id),p.headshot!]))}};
     })};
   }
   return {...data,content:publicContent(data.content)};
