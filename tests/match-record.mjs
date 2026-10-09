@@ -62,3 +62,19 @@ assert.equal(contentSchema.parse({...seed,standings:[table]}).standings[0].logo,
 assert.equal(contentSchema.safeParse({...seed,standings:[{...table,logo:'javascript:alert(1)'}]}).success,false);
 assert.equal(contentSchema.safeParse({...seed,standings:[{...table,logo:undefined}]}).success,true);
 console.log('PASS: separate half added time, 45+ and 90+ display, half-time substitutions and minutes, youth match lengths, clock validation and standings logo persistence.');
+
+const {matchFixturePatch}=await import('../app/match-record.ts');
+const corrected={...fixture,status:'live',scoreMode:'manual',goalsFor:3,goalsAgainst:2};
+const advanced={...match,minute:91,duration:95};
+let saved={...corrected,...matchFixturePatch(corrected,advanced)};
+assert.equal(saved.goalsFor,3);assert.equal(saved.goalsAgainst,2);
+saved={...saved,...matchFixturePatch(saved,{...advanced,events:advanced.events.filter(e=>e.kind!=='goal')})};
+assert.equal(saved.goalsFor,3,'Undoing player attribution must not overwrite a manual score');
+saved={...saved,...matchFixturePatch(saved,{...advanced,phase:'finished'})};
+assert.equal(saved.status,'played');assert.equal(saved.goalsFor,3);assert.equal(saved.goalsAgainst,2);
+assert.equal(matchFixturePatch({...corrected,scoreMode:'events'},advanced).goalsFor,1);
+assert.equal(matchFixturePatch({...fixture,status:'cancelled'},advanced).status,undefined,'Clock corrections must not silently resume a cancelled game');
+const liveInfo={...fixture,match:undefined,lineup:undefined,status:'live',scoreMode:'manual',goalsFor:2,goalsAgainst:1,round:'Semi-final',referee:'Demo Official',attendance:200,report:'Kick-off delayed by ten minutes.'};
+const validated=fixtureSchema.parse(liveInfo);assert.equal(validated.report,liveInfo.report);assert.equal(validated.referee,liveInfo.referee);assert.equal(validated.scoreMode,'manual');
+for(const patch of [{goalsFor:-1},{goalsAgainst:100},{attendance:-1},{report:'x'.repeat(5001)}])assert.equal(fixtureSchema.safeParse({...liveInfo,...patch}).success,false);
+console.log('PASS: manual score corrections survive clock changes, event removal and full-time; linked scoring, cancelled state and game information validation.');

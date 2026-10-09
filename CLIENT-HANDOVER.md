@@ -78,3 +78,9 @@ The production build, type checks and match-model regression tests passed for th
 Set the normal match length before starting. First-half added minutes and Second-half added minutes can be updated as the referee announces additional time. Advance the clock to the end of the first half, select Half-time, then Start second half when play resumes. For a 90-minute match, enter 48 to show 45+3 and 95 to show 90+5. Both halves' added time count towards player minutes; the break does not. Record the actual first-half added minutes before starting the second half.
 
 Each player profile has an Upload headshot / photo control. Save the profile, then use Refresh photos in the lineup editor to load the latest images. Standings rows now have a club-logo upload and an existing-image selector. The academy row uses the academy logo unless a custom logo is set. Publish dashboard edits to display these changes.
+
+## 9 October 2026 — scores and game information
+
+Both scores can now be edited before, during or after a match. Select Live / in progress to show a live score even without a linked lineup. Editing the academy score switches it to manual scoring; clock changes and player events will preserve it. Use recorded goals to reconnect automatic academy scoring. Update the individual goal/assist events separately to keep player statistics accurate.
+
+All fixture details remain editable, including the academy team. Review the lineup when changing teams. More game information adds round/stage, referee, attendance and a public match report. Visitors open Match details & lineup to read these updates. Publish changes to make them visible.

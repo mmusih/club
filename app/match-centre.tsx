@@ -35,7 +35,7 @@ export function Fixtures({content:c}:{content:Content}) {
   let active=true;
   async function refresh(){
    setNow(Date.now());
-   try{const response=await fetch('/api/content',{cache:'no-store'});if(!response.ok)throw new Error();const data=await response.json();if(active){setFixtures((data.content.fixtures||[]).map((f:Fixture)=>({...f,...(f.match?.phase==='live'&&f.status==='scheduled'?{liveMinute:f.match.minute,liveClock:matchPeriod(f.match)==='interval'?'Half-time':formatMatchMinute(f.match)}:{})})));setLoadError(false)}}catch{if(active)setLoadError(true)}
+   try{const response=await fetch('/api/content',{cache:'no-store'});if(!response.ok)throw new Error();const data=await response.json();if(active){setFixtures((data.content.fixtures||[]).map((f:Fixture)=>({...f,...(f.match?.phase==='live'&&(f.status==='scheduled'||f.status==='live')?{liveMinute:f.match.minute,liveClock:matchPeriod(f.match)==='interval'?'Half-time':formatMatchMinute(f.match)}:{})})));setLoadError(false)}}catch{if(active)setLoadError(true)}
   }
   void refresh();const timer=setInterval(refresh,15000);
   return()=>{active=false;clearInterval(timer)};
@@ -48,22 +48,23 @@ export function Fixtures({content:c}:{content:Content}) {
   const score=academy?f.goalsFor:f.goalsAgainst;
   return <div className={'fixture-team-row'+(home?' home-team':'')}>
    {home||academy?<button className="fixture-team-name" onClick={()=>setSelected(f.id)} aria-label={'View '+f.team+' lineup for '+name+' vs '+(academy?f.opponent:c.name)}>{badge(logo,name)}<span>{name}<small>{home?'Home':f.homeAway==='neutral'?'Neutral venue':'Away'}{academy?' · '+fixtureTeamName(c,f.team):''}</small></span></button>:<div className="fixture-team-name">{badge(logo,name)}<span>{name}<small>{f.homeAway==='neutral'?'Neutral venue':'Away'}</small></span></div>}
-   <b className="fixture-row-score">{f.status==='played'||f.liveMinute!==undefined?score:'–'}</b>
+   <b className="fixture-row-score">{f.status==='played'||f.status==='live'||f.liveMinute!==undefined?(score??'–'):'–'}</b>
   </div>;
  }
  return <section className="section fixtures-section" id="fixtures"><div className="section-heading"><div><p className="eyebrow">ON THE CALENDAR. ON THE PITCH.</p><h2>MATCH<br/><em>CENTRE.</em></h2></div><p>Every team. Every match day.<br/>Follow the next chapter.</p></div>
  <div className="fixtures-toolbar"><div className="fixture-tabs" aria-label="Match view">{(['Upcoming','Results','Other matches'] as const).map(v=><button key={v} aria-pressed={view===v} onClick={()=>setView(v)}>{v}</button>)}</div><label>Season <select value={season} onChange={e=>setSeason(e.target.value)}>{seasonOptions(fixtures.map(f=>f.season||seasonForDate(f.date))).map(s=><option key={s}>{s}</option>)}</select></label><label>Team <select value={team} onChange={e=>setTeam(e.target.value)}><option>All teams</option>{fixtureTeams({...c,fixtures}).map(t=><option key={t}>{t}</option>)}</select></label></div>
  <div className="fixture-cards">{matches.map(f=><article className="fixture-card" key={f.id}>
-  <header><span>{f.competition||'Competition TBC'}</span><span>{fixtureTeamName(c,f.team)}</span></header>
-  <div className="fixture-card-body"><div className="fixture-kickoff"><time dateTime={f.date}>{displayDate(f.date)}</time><strong>{f.time||'Time TBC'}</strong><span>{f.liveMinute!==undefined?f.liveClock==='Half-time'?'Half-time':'Live · '+(f.liveClock||f.liveMinute+'′'):({scheduled:'Scheduled',played:'Full time',postponed:'Postponed',cancelled:'Cancelled'})[f.status]}</span></div>
+  <header><span>{f.competition||'Competition TBC'}{f.round?' · '+f.round:''}</span><span>{fixtureTeamName(c,f.team)}</span></header>
+  <div className="fixture-card-body"><div className="fixture-kickoff"><time dateTime={f.date}>{displayDate(f.date)}</time><strong>{f.time||'Time TBC'}</strong><span>{f.liveMinute!==undefined?f.liveClock==='Half-time'?'Half-time':'Live · '+(f.liveClock||f.liveMinute+'′'):({scheduled:'Scheduled',live:'Live',played:'Full time',postponed:'Postponed',cancelled:'Cancelled'})[f.status]}</span></div>
   <div className="fixture-teams">{teamRow(f,f.homeAway!=='away',f.homeAway!=='neutral')}{teamRow(f,f.homeAway==='away',false)}</div></div>
-  <div className="fixture-card-footer"><span>{f.venue||'Venue TBC'}{f.homeAway==='neutral'?' · Neutral venue':''}</span><button onClick={()=>setSelected(f.id)}>Academy lineup <ArrowUpRight size={15}/></button></div>
+  <div className="fixture-card-footer"><span>{f.venue||'Venue TBC'}{f.homeAway==='neutral'?' · Neutral venue':''}</span><button onClick={()=>setSelected(f.id)}>Match details & lineup <ArrowUpRight size={15}/></button></div>
  </article>)}</div>
  {!matches.length&&<div className="fixtures-empty"><CalendarDays size={30}/><h3>No {view.toLowerCase()} for {team==='All teams'?'this selection':team}.</h3><p>Choose another team or season, or check back for confirmed match details.</p></div>}
  <p className="fixtures-note">Kick-off times: Botswana (CAT, UTC+2). Academy lineups open one hour before kick-off. Schedules may change.</p>
  <Dialog open={!!active} onOpenChange={open=>{if(!open)setSelected(null)}}><DialogContent className="lineup-dialog"><DialogTitle>{active&&fixtureTeamName(c,active.team)} lineup</DialogTitle><DialogDescription>{active&&<>{c.name} vs {active.opponent} · {active.competition||'Competition TBC'}<br/>{displayDate(active.date)} · {active.time||'Time TBC'} CAT</>}</DialogDescription>
  {active&&(now!==null&&lineupAvailable(active,now)?active.lineup&&(active.lineup.image||active.lineup.starters.length)?<AcademyLineup fixture={active} club={c.name}/>:<p className="lineup-message">The academy has not published this lineup yet. Check back soon.</p>:<p className="lineup-message">{active.status==='postponed'||active.status==='cancelled'?'Lineups are unavailable for postponed or cancelled matches.':!active.time?'The lineup will be available once a kick-off time is confirmed.':'The academy lineup opens one hour before kick-off.'}</p>)}
  {loadError&&<p role="status">Could not refresh match details. Please check your connection and try again.</p>}
+ {active&&(active.referee||active.attendance!==undefined&&active.attendance!==null||active.report)&&<section className="public-game-details"><h3>Game information</h3>{active.referee&&<p><b>Referee:</b> {active.referee}</p>}{active.attendance!==undefined&&active.attendance!==null&&<p><b>Attendance:</b> {active.attendance.toLocaleString()}</p>}{active.report&&<p className="game-report">{active.report}</p>}</section>}
  </DialogContent></Dialog></section>;
 }
 

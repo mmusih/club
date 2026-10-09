@@ -2,7 +2,7 @@
 import {useEffect,useState} from 'react';
 import type {Content,Fixture,MatchRecord,MatchEvent} from '../content';
 import {type Player,positions} from '../player-model';
-import {formationSlots,replayMatch,fixturePlayerMatches} from '../match-record';
+import {formationSlots,replayMatch,fixturePlayerMatches,matchFixturePatch} from '../match-record';
 import {fixtureTeamName,matchPeriod,matchLimits,formatMatchMinute,matchClockIssue} from '../lineup';
 import MatchClock from './match-clock';
 import {eligibilityIssue} from '../player-eligibility';
@@ -23,7 +23,7 @@ export default function LineupEditor({fixture:f,content,onChange}:{fixture:Fixtu
   const result=replayMatch(next);if(result.errors.length){setError(result.errors[0]);return}
   setError('');const current=next.phase==='pre'?next.slots:result.slots;
   const portraits=Object.fromEntries(players.filter(p=>p.photo&&[...next.slots,...next.bench].includes(p.id)).map(p=>[label(p.id),p.photo]));
-  onChange({match:next,lineup:{formation:nextFormation,starters:current.map(id=>label(id)||'Vacant position'),substitutes:next.bench.filter(id=>!current.includes(id)).map(label),portraits},...(next.phase!=='pre'?{status:next.phase==='finished'?'played' as const:'scheduled' as const,goalsFor:next.events.filter(e=>e.kind==='goal').length,goalsAgainst:f.goalsAgainst??0}:{})});
+  onChange({match:next,lineup:{formation:nextFormation,starters:current.map(id=>label(id)||'Vacant position'),substitutes:next.bench.filter(id=>!current.includes(id)).map(label),portraits},...matchFixturePatch(f,next)});
  }
  function assign(index:number,id:string){
   if(m.phase!=='pre'||!byId(id))return;
@@ -37,7 +37,7 @@ export default function LineupEditor({fixture:f,content,onChange}:{fixture:Fixtu
  const roster=players.filter(p=>!eligibilityIssue(p)&&(showAll||fixtureTeamName(content,p.ageGroup)===fixtureTeamName(content,f.team))).filter(p=>p.name.toLowerCase().includes(search.toLowerCase()));
  const selectedId=selected===null?'':slots[selected];
  return <div className="match-workbench"><div className="match-control-bar"><label>Formation<select value={formation} disabled={m.phase!=='pre'} onChange={e=>{const shape=formationSlots(e.target.value);const overflow=m.slots.slice(shape.length).filter(Boolean);if(m.bench.length+overflow.length>15){setError('Remove reserves before switching to a smaller formation.');return}setSelected(null);save({...m,slots:shape.map((_,i)=>m.slots[i]||''),bench:[...m.bench,...overflow].slice(0,15)},e.target.value)}}>{!formations.includes(formation)&&<option>{formation}</option>}{formations.map(v=><option key={v}>{v}</option>)}</select></label><MatchClock match={m} onChange={save} onMinuteChange={setMinute}/></div>
- <p className="hint">Drag a player to a position, or select a player then tap a position. Click a player on the pitch for match actions. Advance the match minute as play progresses. Goals update the academy score; enter the opponent score above. Publish changes to update player statistics.</p>
+ <p className="hint">Drag a player to a position, or select a player then tap a position. Click a player on the pitch for match actions. Advance the match minute as play progresses. Both scores can be corrected above. Goal events update the academy score only while score tracking is linked. Publish changes to update player statistics.</p>
  {error&&<p role="alert" className="notice error">{error}</p>}
  {!f.match&&f.lineup?.starters.length? <p className="notice">This fixture has a text lineup. Assigning profile players will replace it with this linked lineup.</p>:null}
  <div className="lineup-workspace"><div><div className="interactive-pitch"><div className="pitch-outline"/><div className="pitch-centre"/><div className="pitch-box top"/><div className="pitch-box bottom"/>{positionsOnPitch.map((position,i)=><button type="button" key={i} className={'pitch-position'+(selected===i?' active':'')} style={{left:position.x+'%',top:position.y+'%'}} aria-label={`${position.role} ${i+1}: ${label(slots[i])||'Empty position'}`} aria-pressed={selected===i} onDragOver={e=>{if(m.phase==='pre')e.preventDefault()}} onDrop={e=>{e.preventDefault();assign(i,e.dataTransfer.getData('text/plain'))}} onClick={()=>{if(chosen&&m.phase==='pre')assign(i,chosen);setSelected(i);setMinute(m.minute)}}>{portrait(slots[i])}<b>{label(slots[i])||position.role}</b></button>)}</div>

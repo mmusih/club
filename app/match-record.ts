@@ -1,6 +1,17 @@
 import type {Fixture,MatchRecord} from './content';
 import {seasonForDate} from './seasons';
 
+/** Score corrections stay authoritative until the editor explicitly reconnects goal events. */
+export function matchFixturePatch(fixture:Fixture,next:MatchRecord):Partial<Fixture>{
+ const patch:Partial<Fixture>={match:next};
+ if(next.phase!==fixture.match?.phase&&next.phase!=='pre')patch.status=next.phase==='finished'?'played':'live';
+ if(next.phase!=='pre'){
+  if(fixture.scoreMode!=='manual')patch.goalsFor=next.events.filter(e=>e.kind==='goal').length;
+  if(fixture.goalsAgainst===null&&next.phase!==fixture.match?.phase)patch.goalsAgainst=0;
+ }
+ return patch;
+}
+
 export function formationSlots(formation:string) {
  const lines=[1,...formation.split('-').map(Number)];
  return lines.flatMap((count,row)=>Array.from({length:count},(_,column)=>({role:row===0?'Goalkeeper':row===1?'Defender':row===lines.length-1?'Forward':'Midfielder',x:(column+1)*100/(count+1),y:90-row*78/(lines.length-1)})));
