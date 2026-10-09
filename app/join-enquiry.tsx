@@ -1,4 +1,6 @@
 'use client';
+import TeamBadge from './team-badge';
+import {teamBranding} from './team-branding';
 import {useState, type FormEvent} from 'react';
 import {ArrowUpRight} from 'lucide-react';
 import type {Content} from './content';
@@ -16,6 +18,7 @@ export default function JoinEnquiry({content}: {content: Content}) {
   return <form className="join-enquiry" onSubmit={compose}>
     <label>Your name<input required maxLength={100} autoComplete="name" value={name} onChange={e=>setName(e.target.value)}/></label>
     <label>Team<select value={team} onChange={e=>setTeam(e.target.value)}><option value="">Help me choose a team</option>{content.programmes.map(p=><option key={p.id} value={p.name}>{p.name}</option>)}</select></label>
+    {team&&<TeamBadge name={team} branding={teamBranding(content)}/>}
     <label>What would you like to know? <span>(optional)</span><textarea maxLength={1000} rows={3} value={message} onChange={e=>setMessage(e.target.value)} placeholder="Ask about joining, training or a trial session."/></label>
     <button className="button navy" type="submit">Continue to email <ArrowUpRight size={20}/></button>
     <p className="enquiry-note">This opens your email app. Review and send your message there. No enquiry is submitted or saved by this form. Please leave private player documents out of your message.</p>

@@ -71,3 +71,7 @@ Run the match model regression checks with `node tests/match-record.mjs`.
 Player profiles have an Upload headshot / photo control. The same saved photo is used in lineups; use Refresh photos in the lineup editor after updating a profile. Standings rows accept a logo upload or a gallery image, with the academy logo used by default for its own row.
 
 Choose Live / in progress to publish scores without setting up a lineup. More game information contains the referee, round/stage, attendance and public match report; these appear under Match details & lineup.
+
+## Shared team logos
+
+Open Team logos in the club dashboard to upload a badge for each academy team or opponent, or reuse a gallery image. Publish changes once; the shared badge is used on team cards, fixtures, lineups, standings, staff/honours records, player profiles and match history, the joining form and supporters pages. Shared badges override older fixture or standings uploads. Academy teams inherit the academy badge until assigned their own; unknown opponents show a shield placeholder until a real badge is uploaded. Existing fixture and standings logos remain available as fallbacks. Select controls retain their accessible text options, with a badge beside the selected team where shown.

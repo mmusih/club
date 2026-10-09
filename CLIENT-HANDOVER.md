@@ -84,3 +84,7 @@ Each player profile has an Upload headshot / photo control. Save the profile, th
 Both scores can now be edited before, during or after a match. Select Live / in progress to show a live score even without a linked lineup. Editing the academy score switches it to manual scoring; clock changes and player events will preserve it. Use recorded goals to reconnect automatic academy scoring. Update the individual goal/assist events separately to keep player statistics accurate.
 
 All fixture details remain editable, including the academy team. Review the lineup when changing teams. More game information adds round/stage, referee, attendance and a public match report. Visitors open Match details & lineup to read these updates. Publish changes to make them visible.
+
+## Shared team logos
+
+Open Team logos in the club dashboard to upload a badge for each academy team or opponent, or reuse a gallery image. Publish changes once; the shared badge is used on team cards, fixtures, lineups, standings, staff/honours records, player profiles and match history, the joining form and supporters pages. Shared badges override older fixture or standings uploads. Academy teams inherit the academy badge until assigned their own; unknown opponents show a shield placeholder until a real badge is uploaded. Existing fixture and standings logos remain available as fallbacks. Select controls retain their accessible text options, with a badge beside the selected team where shown.

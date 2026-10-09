@@ -1,3 +1,4 @@
+import {teamBranding,teamKey} from '../../team-branding';
 import type {Metadata} from 'next';
 import Link from 'next/link';
 import {notFound} from 'next/navigation';
@@ -25,5 +26,5 @@ export default async function NewsStory({params}: Props) {
   const story = content.news.find(item=>item.id===id);
   if (!story) notFound();
   const date = new Intl.DateTimeFormat('en-GB',{dateStyle:'long',timeZone:'UTC'}).format(new Date(story.date+'T12:00:00Z'));
-  return <><Header name={content.name} logo={content.logo} sections={content.sections}/><main className="section news-article"><Link className="inline-link" href="/#news">← Back to club news</Link><article><p className="eyebrow dark">{story.category || 'Club news'} · <time dateTime={story.date}>{date}</time></p><h1>{story.title}</h1><Photo src={story.image || content.hero} alt="" sizes="(max-width: 900px) 100vw, 900px"/><div className="news-article-body">{story.body}</div></article></main></>;
+  return <><Header name={content.name} logo={teamBranding(content).logos[teamKey(content.name)]} sections={content.sections}/><main className="section news-article"><Link className="inline-link" href="/#news">← Back to club news</Link><article><p className="eyebrow dark">{story.category || 'Club news'} · <time dateTime={story.date}>{date}</time></p><h1>{story.title}</h1><Photo src={story.image || content.hero} alt="" sizes="(max-width: 900px) 100vw, 900px"/><div className="news-article-body">{story.body}</div></article></main></>;
 }
