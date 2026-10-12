@@ -1,4 +1,3 @@
-import {connect} from '../scripts/mysql-connection.mjs';
 import assert from 'node:assert/strict';
 import {writeFileSync} from 'node:fs';
 const base=process.env.APP_URL||'http://localhost:5173';
@@ -30,4 +29,15 @@ assert.equal((await fetch(base+'/api/players/'+id)).status,404);assert.ok(!(awai
 if(process.argv.includes('--keep')){res=await put({...data,consent:true,status:'published',videos:[]},saved.version);assert.equal(res.status,200);saved=(await res.json()).player;writeFileSync('.sites-runtime/qa-player.json',JSON.stringify({id,version:saved.version}));}
 console.log(JSON.stringify({result:'PASS',id,checks:'Draft isolation, editor authorisation, origin checks, guardian permission gate, date/number/video validation, duplicate record rejection, create/update, public read-back, profile route, version conflict, unpublish removes public access.'}));
 
-if(!process.argv.includes('--keep')){const db=await connect();try{await db.execute('DELETE FROM players WHERE id = ?',[id]);}finally{await db.end();}console.log('Temporary player removed from isolated test database.');}
+if(!process.argv.includes('--keep')){
+ const remove=(h,version=saved.version)=>fetch(base+'/api/players/'+id,{method:'DELETE',headers:{...h,'If-Match':String(version)}});
+ assert.equal((await remove({origin:base})).status,403);
+ assert.equal((await remove({...headers,origin:'https://other.example'})).status,403);
+ assert.equal((await remove(headers,0)).status,400);
+ assert.equal((await remove(headers,saved.version-1)).status,409);
+ assert.equal((await remove(headers)).status,200);
+ assert.equal((await fetch(base+'/api/players/'+id)).status,404);
+ assert.ok(!(await fetch(base+'/api/admin/players',{headers:{cookie}}).then(r=>r.json())).players.some(p=>p.id===id));
+ assert.equal((await remove(headers)).status,409);
+ console.log('PASS: deletion authorisation, origin protection, version checks and removal from public/admin lists.');
+}

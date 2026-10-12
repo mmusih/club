@@ -23,6 +23,18 @@ This is a server application, not a static HTML website. Uploading the ZIP to `p
 
 Open `/admin` on the final domain and sign in.
 
+### Delete a player
+
+Open Player profiles, select a saved player, click **Delete profile**, then confirm in the dialog. Cancel leaves everything unchanged. Deletion is immediate and permanent; there is no extra Save or Publish step. Pre-match lineup positions become vacant. Matches already started keep their scores and event history with a generic deleted-player entry. If another editor changed the profile, reload before trying again. An open club dashboard may also need reloading after a linked player is deleted.
+
+### Import a TRFA fixture PDF
+
+In Fixtures, select **Choose fixture PDF**. Use the text-based landscape schedule with numbered rows, week headings and DATE / DAY / HOME / AWAY / VENUE columns (up to 10 MB and 30 pages). Select the club name as written in the PDF, its academy team and the competition. Review the preview, choose **Add fixtures to draft**, then **Publish changes**. The default competition is TRFA Division 1 Western Stream.
+
+Only the selected club's matches are added. Re-importing skips matching dates, teams, opponents, home/away and competitions; existing results and lineups are preserved. A revised date is treated as a new fixture, so remove or update the old entry when importing rescheduled fixtures. New and imported fixtures default to 16:00 Botswana time (CAT). You can change the kick-off time for each fixture. Row dates and venue wording are retained, even if a heading or venue spelling is inconsistent. The supplied five-page schedule yields 22 academy fixtures from 132 league matches.
+
+The PDF's TRFA and BFA logos appear as competition branding. Team logos continue to use the existing shared badge library. PDF reading runs in Node.js using the installed PDF.js dependency; Python and external PDF services are not required on the host.
+
 - **Club details:** name, headline, introduction, location, email and telephone number.
 - **Programmes:** teams, age labels, descriptions, training times and team photos.
 - **Photo gallery:** upload JPG, PNG or WebP files, write captions, choose collections and select a cover photo. Maximum upload size is 8 MB per photo.

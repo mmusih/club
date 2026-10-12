@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const base=process.env.APP_URL;
+assert.ok(base&&['localhost','127.0.0.1'].includes(new URL(base).hostname)&&process.env.DB_NAME?.startsWith('club_hostinger_test_'),'Use the isolated local test database');
+const login=await fetch(base+'/api/auth/login',{method:'POST',headers:{origin:base,'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({email:process.env.ADMIN_EMAIL,password:process.env.TEST_ADMIN_PASSWORD}),redirect:'manual'});
+const cookie=login.headers.getSetCookie().map(c=>c.split(';')[0]).join('; ');assert.ok(cookie);
+const endpoint=base+'/api/admin/fixtures/import';
+const form=bytes=>{const data=new FormData();data.append('file',new File([bytes],'fixtures.pdf',{type:'application/pdf'}));return data};
+assert.equal((await fetch(endpoint,{method:'POST',headers:{origin:base},body:form('bad')})).status,403);
+assert.equal((await fetch(endpoint,{method:'POST',headers:{cookie,origin:'https://other.example'},body:form('bad')})).status,403);
+assert.equal((await fetch(endpoint,{method:'POST',headers:{cookie,origin:base},body:form('bad')})).status,400);
+const response=await fetch(endpoint,{method:'POST',headers:{cookie,origin:base},body:form(readFileSync(process.argv[2]))});
+assert.equal(response.status,200,await response.clone().text());const {fixtures}=await response.json();assert.equal(fixtures.length,132);assert.equal(fixtures.filter(f=>[f.home,f.away].includes('EYES ON THE BALL ACADEMY')).length,22);
+console.log('PASS: production PDF upload route, authentication, same-origin checks, bad file rejection and complete 132-match extraction.');

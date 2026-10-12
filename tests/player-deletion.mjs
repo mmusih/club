@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {registerHooks} from 'node:module';
+registerHooks({resolve(specifier,context,next){try{return next(specifier,context)}catch(error){if(specifier.startsWith('.')&&!/\.[a-z]+$/.test(specifier))return next(specifier+'.ts',context);throw error}}});
+const {detachPlayer,isDeletedPlayer}=await import('../app/player-deletion.ts');
+const {seed}=await import('../app/content.ts');
+const {fixtureSchema}=await import('../app/validation.ts');
+const {replayMatch}=await import('../app/match-record.ts');
+const id=crypto.randomUUID(),player={name:'Test Player',number:9};
+const slots=[id,...Array.from({length:6},()=>crypto.randomUUID())],bench=[crypto.randomUUID()];
+const fixture={id:'test',date:'2026-10-17',time:'15:00',team:'Senior',opponent:'Rovers',competition:'League',venue:'Home',homeAway:'home',status:'live',goalsFor:1,goalsAgainst:0,lineup:{formation:'2-3-1',starters:['9 Test Player',...slots.slice(1)],substitutes:bench,portraits:{'9 Test Player':'https://example.com/player.jpg'}},match:{phase:'live',minute:20,duration:90,slots,bench,events:[{id:'goal',kind:'goal',minute:5,playerId:id},{id:'sub',kind:'substitution',minute:10,playerId:id,replacementId:bench[0]}]}};
+const result=detachPlayer({...seed,fixtures:[fixture]},id,player).fixtures[0];
+assert.equal(fixtureSchema.safeParse(result).success,true);assert.equal(result.goalsFor,1);assert.equal(result.match.events.length,2);assert.equal(isDeletedPlayer(result.match.slots[0]),true);assert.deepEqual(replayMatch(result.match).errors,[]);assert.equal(result.lineup.starters[0],'Deleted player');assert.deepEqual(result.lineup.portraits,{});assert.equal(fixture.match.slots[0],id,'Input is not mutated');
+const pre={...fixture,status:'scheduled',match:{...fixture.match,phase:'pre',minute:0,events:[]}};
+const detached=detachPlayer({...seed,fixtures:[pre]},id,player).fixtures[0];assert.equal(detached.match.slots[0],'');assert.equal(detached.lineup.starters[0],'Vacant position');assert.equal(fixtureSchema.safeParse(detached).success,true);
+const benchDeleted=detachPlayer({...seed,fixtures:[fixture]},bench[0],{name:bench[0]}).fixtures[0];assert.equal(benchDeleted.match.events[1].replacementId,'deleted:'+bench[0]);assert.deepEqual(replayMatch(benchDeleted.match).errors,[]);
+console.log('PASS: deleting starters/reserves preserves scores, substitutions and valid match history; pre-match positions are vacated and cached portraits removed.');

@@ -1,5 +1,6 @@
 'use client';
 import TeamBadge from './team-badge';
+import CompetitionBrand from './competition-brand';
 import {teamBranding} from './team-branding';
 import Photo from './photo';
 import {sectionVisible} from './sections';
@@ -55,7 +56,7 @@ export function Fixtures({content:c}:{content:Content}) {
  return <section className="section fixtures-section" id="fixtures"><div className="section-heading"><div><p className="eyebrow">ON THE CALENDAR. ON THE PITCH.</p><h2>MATCH<br/><em>CENTRE.</em></h2></div><p>Every team. Every match day.<br/>Follow the next chapter.</p></div>
  <div className="fixtures-toolbar"><div className="fixture-tabs" aria-label="Match view">{(['Upcoming','Results','Other matches'] as const).map(v=><button key={v} aria-pressed={view===v} onClick={()=>setView(v)}>{v}</button>)}</div><label>Season <select value={season} onChange={e=>setSeason(e.target.value)}>{seasonOptions(fixtures.map(f=>f.season||seasonForDate(f.date))).map(s=><option key={s}>{s}</option>)}</select></label><label>Team <select value={team} onChange={e=>setTeam(e.target.value)}><option>All teams</option>{fixtureTeams({...c,fixtures}).map(t=><option key={t}>{t}</option>)}</select>{team!=='All teams'&&<TeamBadge name={team} branding={teamBranding(c)}/>}</label></div>
  <div className="fixture-cards">{matches.map(f=><article className="fixture-card" key={f.id}>
-  <header><span>{f.competition||'Competition TBC'}{f.round?' · '+f.round:''}</span><TeamBadge name={fixtureTeamName(c,f.team)} branding={teamBranding(c)} logo={f.teamLogo}/></header>
+  <header><span><CompetitionBrand name={f.competition||'Competition TBC'}/>{f.round?' · '+f.round:''}</span><TeamBadge name={fixtureTeamName(c,f.team)} branding={teamBranding(c)} logo={f.teamLogo}/></header>
   <div className="fixture-card-body"><div className="fixture-kickoff"><time dateTime={f.date}>{displayDate(f.date)}</time><strong>{f.time||'Time TBC'}</strong><span>{f.liveMinute!==undefined?f.liveClock==='Half-time'?'Half-time':'Live · '+(f.liveClock||f.liveMinute+'′'):({scheduled:'Scheduled',live:'Live',played:'Full time',postponed:'Postponed',cancelled:'Cancelled'})[f.status]}</span></div>
   <div className="fixture-teams">{teamRow(f,f.homeAway!=='away',f.homeAway!=='neutral')}{teamRow(f,f.homeAway==='away',false)}</div></div>
   <div className="fixture-card-footer"><span>{f.venue||'Venue TBC'}{f.homeAway==='neutral'?' · Neutral venue':''}</span><button onClick={()=>setSelected(f.id)}>Match details & lineup <ArrowUpRight size={15}/></button></div>

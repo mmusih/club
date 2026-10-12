@@ -1,5 +1,9 @@
 # Academy photographs
 
+## Competition logos — 12 October 2026
+
+`public/competitions/trfa.jpg` and `public/competitions/bfa.jpg` are the embedded images from page 1 of the user-supplied `TRFA DIVISION 1 WESTERN STREAM FIXTURES.pdf`. They identify the regional association and Botswana Football Association, and are used for TRFA competition branding rather than as opponent badges.
+
 Downloaded from the academy's publicly accessible Facebook page on 22 September 2026 for this website project. The club should confirm its permission records before public launch. No player names or identities were inferred from the photographs.
 
 | Local file | Source photo | Use |
