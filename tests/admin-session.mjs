@@ -1,0 +1,20 @@
+import assert from 'node:assert/strict';
+import {registerHooks} from 'node:module';
+globalThis.sessionTest={user:true,origin:true,changes:1,fail:false,cookies:[],queries:[]};
+registerHooks({resolve(specifier,context,next){if(specifier==='next/headers')return {url:'mock:headers',shortCircuit:true};try{return next(specifier,context)}catch(error){if(specifier.startsWith('.')&&!/\.[a-z]+$/.test(specifier))return next(specifier+'.ts',context);throw error}},load(url,context,next){
+ if(url==='mock:headers')return {format:'module',shortCircuit:true,source:"export async function cookies(){return {get:()=>({value:'token'}),set:(...args)=>globalThis.sessionTest.cookies.push(args)}}"};
+ if(url.endsWith('/app/auth.ts'))return {format:'module',shortCircuit:true,source:"export const sessionCookie='club_session';export const tokenHash=()=> 'hashed';export async function getAdminUser(){return globalThis.sessionTest.user?{email:'test@example.com'}:null}"};
+ if(url.endsWith('/app/storage.ts'))return {format:'module',shortCircuit:true,source:"export const sameOrigin=()=>globalThis.sessionTest.origin;export function database(){return {prepare:sql=>({bind:(...args)=>({run:async()=>{const s=globalThis.sessionTest;s.queries.push([sql,args]);if(s.fail)throw Error('offline');return {meta:{changes:s.changes}}}})})}}"};
+ return next(url,context);
+}});
+const {POST}=await import('../app/api/auth/session/route.ts');
+const request=()=>new Request('https://academy.example/api/auth/session',{method:'POST'});
+const s=globalThis.sessionTest;
+s.origin=false;assert.equal((await POST(request())).status,403);assert.equal(s.queries.length,0);
+s.origin=true;s.user=false;assert.equal((await POST(request())).status,401);assert.equal(s.cookies.length,0);
+s.user=true;assert.equal((await POST(request())).status,200);
+assert.match(s.queries[0][0],/WHERE token_hash = \? AND expires_at > \?/,'Only the current unexpired session is extended');
+assert.equal(s.cookies[0][2].maxAge,8*3600);assert.equal(s.cookies[0][2].httpOnly,true);assert.equal(s.cookies[0][2].sameSite,'lax');
+s.changes=0;assert.equal((await POST(request())).status,401);assert.equal(s.cookies.length,1,'Do not recreate a logged-out session');
+s.fail=true;assert.equal((await POST(request())).status,503);assert.equal(s.cookies.length,1,'Outages do not clear or replace the cookie');
+console.log('PASS: session renewal, origin enforcement, expired/logout rejection and recoverable database outages.');

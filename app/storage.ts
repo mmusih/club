@@ -1,3 +1,4 @@
+import {integrateClubContent} from './club-integration';
 import {publicContent} from './lineup';
 import { seed, type Content } from './content';
 import { getAdminUser } from './auth';
@@ -9,6 +10,7 @@ export { database };
 export async function readContent(includeLineups=false) {
   const row = await database().prepare('SELECT body, version FROM site_content WHERE id = 1').first<{body: string; version: number}>();
   const data = row ? { content: { ...seed, ...JSON.parse(row.body) } as Content, version: row.version } : { content: seed, version: 0 };
+  data.content=integrateClubContent(data.content);
   if(includeLineups)return data;
   if(data.content.fixtures.some(f=>f.match)){
     const rows=await database().prepare('SELECT id,body FROM players WHERE status = ?').bind('published').all<{id:string;body:string}>();
@@ -25,5 +27,6 @@ export async function readContent(includeLineups=false) {
 export async function canEdit() { return !!await getAdminUser(); }
 export function sameOrigin(request: Request) {
   const expected = process.env.APP_URL || (process.env.NODE_ENV !== 'production' ? new URL(request.url).origin : '');
-  return !!expected && request.headers.get('origin') === new URL(expected).origin;
+  const allowed=[expected,...(process.env.ADMIN_ALLOWED_ORIGINS||'').split(',')].map(value=>value.trim()).filter(Boolean);
+  return allowed.some(value=>{try{return request.headers.get('origin')===new URL(value).origin}catch{return false}});
 }

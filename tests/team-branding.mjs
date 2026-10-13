@@ -8,15 +8,32 @@ const fixture={id:'one',date:'2026-10-09',time:'15:00',team:'Under 13',opponent:
 const c={...seed,fixtures:[fixture],teamLogos:[{name:'Rovers',logo:'https://example.com/rovers.png'},{name:'Boys’ Under 13',logo:'https://example.com/u13.png'}]};
 const branding=teamBranding(c);
 assert.equal(branding.logos[teamKey(' ROVERS ')],'https://example.com/rovers.png','Shared badges override earlier fixture uploads');
-assert.equal(branding.logos[teamKey('Under 13')],'https://example.com/u13.png');
-assert.equal(branding.logos[teamKey('U13')],'https://example.com/u13.png');
+assert.equal(branding.logos[teamKey('Under 13')],seed.logo);
+assert.equal(branding.logos[teamKey('U13')],seed.logo);
 assert.equal(branding.logos[teamKey('Boys’ Under 17')],seed.logo,'Academy teams inherit the academy badge');
 assert.equal(branding.logos[teamKey('Unknown opponents')],undefined,'Do not give an unknown opponent the academy badge');
 assert.equal(teamBranding({...c,teamLogos:[]}).logos[teamKey('Rovers')],fixture.opponentLogo,'Existing fixture uploads remain usable');
 const ambiguous={...c,programmes:[...c.programmes,{id:'girls-u13',name:'Girls’ Under 13',ages:'Under 13',description:'',schedule:''}]};
-assert.equal(teamBranding(ambiguous).logos[teamKey('Under 13')],undefined,'Ambiguous divisions must not get the wrong team badge');
+assert.equal(teamBranding(ambiguous).logos[teamKey('Under 13')],seed.logo,'All academy divisions use the academy badge');
 assert.ok(teamNames(c).includes('Rovers'));
 assert.equal(contentSchema.parse(c).teamLogos.length,2);
 assert.equal(contentSchema.safeParse({...c,teamLogos:[{name:'Rovers',logo:'javascript:alert(1)'}]}).success,false);
 assert.equal(contentSchema.safeParse({...c,teamLogos:[...c.teamLogos,{name:' rovers ',logo:''}]}).success,false);
 console.log('PASS: shared badge priority, division aliases, academy fallback, unknown opponents, legacy uploads, ambiguity and validation.');
+
+assert.equal(teamNames(c).filter(n=>/eyes/i.test(n)).length,1);
+assert.ok(!teamNames(c).includes('Boys’ Under 13'));
+assert.equal(teamBranding({...c,fixtures:[{...fixture,teamLogo:'https://example.com/old-team.png'}]}).logos[teamKey('Under 13')],seed.logo);
+
+const {deleteTeamLogo}=await import('../app/team-branding.ts');
+const legacyLogos={...c,fixtures:[{...fixture,teamLogo:'https://example.com/academy-old.png'}],standings:[{id:'s1',club:'Rovers',logo:'https://example.com/standings-old.png'},{id:'s2',club:c.name,logo:'https://example.com/club-old.png'}]};
+const deletedOpponent=deleteTeamLogo(legacyLogos,' ROVERS ');
+assert.equal(teamBranding(deletedOpponent).logos[teamKey('Rovers')],undefined);
+assert.equal(deletedOpponent.fixtures[0].opponentLogo,'');assert.equal(deletedOpponent.standings[0].logo,'');
+assert.equal(deletedOpponent.logo,c.logo);
+const deletedAcademy=deleteTeamLogo(legacyLogos,'Under 13');
+for(const name of [c.name,'EyesOnTheBall','Under 13','Boys’ Under 17'])assert.equal(teamBranding(deletedAcademy).logos[teamKey(name)],'');
+assert.equal(deletedAcademy.logo,'');assert.equal(deletedAcademy.fixtures[0].teamLogo,'');assert.equal(deletedAcademy.standings[1].logo,'');
+assert.equal(teamBranding(deletedAcademy).logos[teamKey('Rovers')],'https://example.com/rovers.png');
+assert.equal(legacyLogos.logo,c.logo,'Deleting a logo must not mutate existing content');
+console.log('PASS: deleting team logos clears academy aliases and legacy copies without changing other clubs.');

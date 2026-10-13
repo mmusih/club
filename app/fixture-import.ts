@@ -1,4 +1,4 @@
-import type {Content,Fixture} from './content';
+import type {Content,Fixture,LeagueSchedule} from './content';
 import {seasonForDate} from './seasons';
 import {teamKey} from './team-branding';
 
@@ -63,5 +63,8 @@ export function prepareFixtureImport(rows:ImportedFixture[],content:Content,pdfT
   if(existing.has(key(f))){skipped++;continue}existing.add(key(f));fixtures.push(f);
  }
  if(content.fixtures.length+fixtures.length>200)throw new Error('This import would exceed the 200-fixture limit. Remove old fixtures first.');
- return {fixtures,skipped};
+ const seasons=[...new Set(rows.map(r=>seasonForDate(r.date)))];
+ const leagueSchedules:LeagueSchedule[]=[...(content.leagueSchedules||[]).filter(s=>s.competitionId!==competition.id||!seasons.includes(s.season)),...seasons.map(season=>({competitionId:competition.id,competition:competition.name,season,fixtures:rows.filter(r=>seasonForDate(r.date)===season).map(r=>({...r,time:'16:00'}))}))];
+ if(leagueSchedules.length>20)throw new Error('The saved league schedule limit has been reached.');
+ return {fixtures,skipped,leagueSchedules};
 }

@@ -1,12 +1,13 @@
 'use client';
 import TeamBadge from './team-badge';
 import CompetitionBrand from './competition-brand';
-import {teamBranding} from './team-branding';
+import LeagueFixtures from './league-fixtures';
+import {academyName,teamBranding} from './team-branding';
 import Photo from './photo';
 import {sectionVisible} from './sections';
 import {useEffect,useState} from 'react';
 import {Dialog,DialogContent,DialogTitle,DialogDescription} from '@/components/ui/dialog';
-import {fixtureTeamName,fixtureTeams,lineupAvailable,formatMatchMinute,matchPeriod} from './lineup';
+import {automaticFixture,fixtureTeamName,fixtureTeams,lineupAvailable,formatMatchMinute,matchPeriod} from './lineup';
 import {clubToday} from './player-eligibility';
 import {inMatchView,type MatchView} from './fixture-view';
 import {ArrowUpRight,CalendarDays,ArrowRight,Newspaper} from 'lucide-react';
@@ -33,37 +34,40 @@ export function NewsWall({content:c}:{content:Content}) {
 
 export function Fixtures({content:c}:{content:Content}) {
  const [view,setView]=useState<MatchView>('Upcoming'),[team,setTeam]=useState('All teams'),[season,setSeason]=useState(seasonForDate(clubToday()));
+ const [leagueSchedules,setLeagueSchedules]=useState(c.leagueSchedules||[]);
  const [fixtures,setFixtures]=useState(c.fixtures||[]),[selected,setSelected]=useState<string|null>(null),[now,setNow]=useState<number|null>(null),[loadError,setLoadError]=useState(false);
  useEffect(()=>{
   let active=true;
   async function refresh(){
    setNow(Date.now());
-   try{const response=await fetch('/api/content',{cache:'no-store'});if(!response.ok)throw new Error();const data=await response.json();if(active){setFixtures((data.content.fixtures||[]).map((f:Fixture)=>({...f,...(f.match?.phase==='live'&&(f.status==='scheduled'||f.status==='live')?{liveMinute:f.match.minute,liveClock:matchPeriod(f.match)==='interval'?'Half-time':formatMatchMinute(f.match)}:{})})));setLoadError(false)}}catch{if(active)setLoadError(true)}
+   try{const response=await fetch('/api/content',{cache:'no-store'});if(!response.ok)throw new Error();const data=await response.json();if(active){setLeagueSchedules(data.content.leagueSchedules||[]);setFixtures((data.content.fixtures||[]).map((f:Fixture)=>({...f,...(f.match?.phase==='live'&&(f.status==='scheduled'||f.status==='live')?{liveMinute:f.match.minute,liveClock:matchPeriod(f.match)==='interval'?'Half-time':formatMatchMinute(f.match)}:{})})));setLoadError(false)}}catch{if(active)setLoadError(true)}
   }
   void refresh();const timer=setInterval(refresh,15000);
   return()=>{active=false;clearInterval(timer)};
  },[]);
- const matches=fixtures.filter(f=>seasonLabel(f.season||seasonForDate(f.date))===season&&(team==='All teams'||fixtureTeamName(c,f.team)===team)&&inMatchView(f,view,now===null?clubToday():clubToday(new Date(now)))).sort((a,b)=>view==='Results'?(b.date+b.time).localeCompare(a.date+a.time):(a.date+a.time).localeCompare(b.date+b.time));
- const active=fixtures.find(f=>f.id===selected);
+ const currentFixtures=fixtures.map(f=>automaticFixture(f,now??undefined));
+ const matches=currentFixtures.filter(f=>seasonLabel(f.season||seasonForDate(f.date))===season&&(team==='All teams'||fixtureTeamName(c,f.team)===team)&&inMatchView(f,view,now===null?clubToday():clubToday(new Date(now)))).sort((a,b)=>view==='Results'?(b.date+b.time).localeCompare(a.date+a.time):(a.date+a.time).localeCompare(b.date+b.time));
+ const active=currentFixtures.find(f=>f.id===selected);
  function teamRow(f:Fixture,academy:boolean,home:boolean){
-  const name=academy?c.name:f.opponent,logo=academy?(f.teamLogo||c.logo):f.opponentLogo;
+  const name=academy?academyName:f.opponent,logo=academy?(f.teamLogo||c.logo):f.opponentLogo;
   const score=academy?f.goalsFor:f.goalsAgainst;
   return <div className={'fixture-team-row'+(home?' home-team':'')}>
-   {home||academy?<button className="fixture-team-name" onClick={()=>setSelected(f.id)} aria-label={'View '+f.team+' lineup for '+name+' vs '+(academy?f.opponent:c.name)}><TeamBadge name={academy?fixtureTeamName(c,f.team):name} branding={teamBranding(c)} logo={logo} showName={false}/><span>{name}<small>{home?'Home':f.homeAway==='neutral'?'Neutral venue':'Away'}{academy?' · '+fixtureTeamName(c,f.team):''}</small></span></button>:<div className="fixture-team-name"><TeamBadge name={academy?fixtureTeamName(c,f.team):name} branding={teamBranding(c)} logo={logo} showName={false}/><span>{name}<small>{f.homeAway==='neutral'?'Neutral venue':'Away'}</small></span></div>}
+   {home||academy?<button className="fixture-team-name" onClick={()=>setSelected(f.id)} aria-label={'View '+f.team+' lineup for '+name+' vs '+(academy?f.opponent:c.name)}><TeamBadge name={academy?fixtureTeamName(c,f.team):name} branding={teamBranding(c)} logo={logo} showName={false}/><span>{name}<small>{home?'Home':f.homeAway==='neutral'?'Neutral venue':'Away'}</small></span></button>:<div className="fixture-team-name"><TeamBadge name={academy?fixtureTeamName(c,f.team):name} branding={teamBranding(c)} logo={logo} showName={false}/><span>{name}<small>{f.homeAway==='neutral'?'Neutral venue':'Away'}</small></span></div>}
    <b className="fixture-row-score">{f.status==='played'||f.status==='live'||f.liveMinute!==undefined?(score??'–'):'–'}</b>
   </div>;
  }
  return <section className="section fixtures-section" id="fixtures"><div className="section-heading"><div><p className="eyebrow">ON THE CALENDAR. ON THE PITCH.</p><h2>MATCH<br/><em>CENTRE.</em></h2></div><p>Every team. Every match day.<br/>Follow the next chapter.</p></div>
  <div className="fixtures-toolbar"><div className="fixture-tabs" aria-label="Match view">{(['Upcoming','Results','Other matches'] as const).map(v=><button key={v} aria-pressed={view===v} onClick={()=>setView(v)}>{v}</button>)}</div><label>Season <select value={season} onChange={e=>setSeason(e.target.value)}>{seasonOptions(fixtures.map(f=>f.season||seasonForDate(f.date))).map(s=><option key={s}>{s}</option>)}</select></label><label>Team <select value={team} onChange={e=>setTeam(e.target.value)}><option>All teams</option>{fixtureTeams({...c,fixtures}).map(t=><option key={t}>{t}</option>)}</select>{team!=='All teams'&&<TeamBadge name={team} branding={teamBranding(c)}/>}</label></div>
+ <LeagueFixtures schedules={leagueSchedules} content={c}/>
  <div className="fixture-cards">{matches.map(f=><article className="fixture-card" key={f.id}>
-  <header><span><CompetitionBrand name={f.competition||'Competition TBC'}/>{f.round?' · '+f.round:''}</span><TeamBadge name={fixtureTeamName(c,f.team)} branding={teamBranding(c)} logo={f.teamLogo}/></header>
+  <header><span><CompetitionBrand name={f.competition||'Competition TBC'}/>{f.round?' · '+f.round:''}</span><TeamBadge name={academyName} branding={teamBranding(c)} logo={f.teamLogo}/></header>
   <div className="fixture-card-body"><div className="fixture-kickoff"><time dateTime={f.date}>{displayDate(f.date)}</time><strong>{f.time||'Time TBC'}</strong><span>{f.liveMinute!==undefined?f.liveClock==='Half-time'?'Half-time':'Live · '+(f.liveClock||f.liveMinute+'′'):({scheduled:'Scheduled',live:'Live',played:'Full time',postponed:'Postponed',cancelled:'Cancelled'})[f.status]}</span></div>
   <div className="fixture-teams">{teamRow(f,f.homeAway!=='away',f.homeAway!=='neutral')}{teamRow(f,f.homeAway==='away',false)}</div></div>
   <div className="fixture-card-footer"><span>{f.venue||'Venue TBC'}{f.homeAway==='neutral'?' · Neutral venue':''}</span><button onClick={()=>setSelected(f.id)}>Match details & lineup <ArrowUpRight size={15}/></button></div>
  </article>)}</div>
  {!matches.length&&<div className="fixtures-empty"><CalendarDays size={30}/><h3>No {view.toLowerCase()} for {team==='All teams'?'this selection':team}.</h3><p>Choose another team or season, or check back for confirmed match details.</p></div>}
  <p className="fixtures-note">Kick-off times: Botswana (CAT, UTC+2). Academy lineups open one hour before kick-off. Schedules may change.</p>
- <Dialog open={!!active} onOpenChange={open=>{if(!open)setSelected(null)}}><DialogContent className="lineup-dialog"><DialogTitle>{active&&<TeamBadge name={fixtureTeamName(c,active.team)} branding={teamBranding(c)} logo={active.teamLogo}/>} lineup</DialogTitle><DialogDescription>{active&&<><TeamBadge name={c.name} branding={teamBranding(c)}/> vs <TeamBadge name={active.opponent} branding={teamBranding(c)} logo={active.opponentLogo}/> · {active.competition||'Competition TBC'}<br/>{displayDate(active.date)} · {active.time||'Time TBC'} CAT</>}</DialogDescription>
+ <Dialog open={!!active} onOpenChange={open=>{if(!open)setSelected(null)}}><DialogContent className="lineup-dialog"><DialogTitle>{active&&<TeamBadge name={academyName} branding={teamBranding(c)} logo={active.teamLogo}/>} lineup</DialogTitle><DialogDescription>{active&&<><TeamBadge name={academyName} branding={teamBranding(c)}/> vs <TeamBadge name={active.opponent} branding={teamBranding(c)} logo={active.opponentLogo}/> · {active.competition||'Competition TBC'}<br/>{displayDate(active.date)} · {active.time||'Time TBC'} CAT</>}</DialogDescription>
  {active&&(now!==null&&lineupAvailable(active,now)?active.lineup&&(active.lineup.image||active.lineup.starters.length)?<AcademyLineup fixture={active} content={c}/>:<p className="lineup-message">The academy has not published this lineup yet. Check back soon.</p>:<p className="lineup-message">{active.status==='postponed'||active.status==='cancelled'?'Lineups are unavailable for postponed or cancelled matches.':!active.time?'The lineup will be available once a kick-off time is confirmed.':'The academy lineup opens one hour before kick-off.'}</p>)}
  {loadError&&<p role="status">Could not refresh match details. Please check your connection and try again.</p>}
  {active&&(active.referee||active.attendance!==undefined&&active.attendance!==null||active.report)&&<section className="public-game-details"><h3>Game information</h3>{active.referee&&<p><b>Referee:</b> {active.referee}</p>}{active.attendance!==undefined&&active.attendance!==null&&<p><b>Attendance:</b> {active.attendance.toLocaleString()}</p>}{active.report&&<p className="game-report">{active.report}</p>}</section>}
@@ -74,7 +78,7 @@ function AcademyLineup({fixture,content}:{fixture:Fixture;content:Content}){
  const lineup=fixture.lineup!;
  let offset=0;
  const rows=[1,...lineup.formation.split('-').map(Number)].map(count=>{const row=lineup.starters.slice(offset,offset+count);offset+=count;return row}).reverse();
- return <div className="academy-lineup"><div className="lineup-heading"><strong><TeamBadge name={fixtureTeamName(content,fixture.team)} branding={teamBranding(content)} logo={fixture.teamLogo}/></strong><span>{lineup.formation}</span></div>
+ return <div className="academy-lineup"><div className="lineup-heading"><strong><TeamBadge name={academyName} branding={teamBranding(content)} logo={fixture.teamLogo}/></strong><span>{lineup.formation}</span></div>
  {lineup.image?<Photo className="lineup-graphic" src={lineup.image} alt={fixture.team+' match lineup'}/>:<div className="lineup-pitch"><div className="pitch-circle" aria-hidden="true"/>{rows.map((row,i)=><div className="lineup-row" key={i}>{row.map((name,j)=>{const number=name.match(/^([0-9]{1,2})[.\s-]+/);return <div className="lineup-player" key={j}>{lineup.portraits?.[name]?<Photo className="lineup-headshot" src={lineup.portraits[name]} alt=""/>:<span className="lineup-shirt">{number?number[1]:'●'}</span>}<span>{number?name.slice(number[0].length):name}</span></div>})}</div>)}</div>}
  {lineup.image&&lineup.starters.length>0&&<p className="lineup-names">Starting lineup: {lineup.starters.join(' · ')}</p>}
  {lineup.substitutes.length>0&&<div className="lineup-subs"><h3>Substitutes</h3><ul>{lineup.substitutes.map((name,i)=><li key={i}>{name}</li>)}</ul></div>}

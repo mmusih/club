@@ -27,9 +27,19 @@ export function lineupAvailable(f:Fixture,now=Date.now()) {
   const kickoff=Date.parse(`${f.date}T${f.time}:00+02:00`);
   return Number.isFinite(kickoff) && now>=kickoff-60*60*1000;
 }
+/** Scheduled games become live at CAT kickoff; no result or score is invented. */
+export function automaticFixture(f:Fixture,now=Date.now()):Fixture {
+ if(f.status!=='scheduled'&&f.status!=='live')return f;
+ if(f.match?.phase==='finished')return f;
+ if(f.match?.phase==='live')return {...f,status:'live',liveMinute:f.match.minute,liveClock:matchPeriod(f.match)==='interval'?'Half-time':formatMatchMinute(f.match)};
+ if(f.status==='live'||!f.time)return f;
+ const kickoff=Date.parse(f.date+'T'+f.time+':00+02:00');
+ const duration=f.match?.duration||90,added=(f.match?.firstHalfAdded||0)+(f.match?.secondHalfAdded||0);
+ return Number.isFinite(kickoff)&&now>=kickoff&&now<kickoff+(duration+added+15)*60000?{...f,status:'live'}:f;
+}
 export function publicContent(content:Content,now=Date.now()):Content {
   return {...content,fixtures:(content.fixtures||[]).map(f=>{
-    const {match: privateMatch,...safe}=f;
+    const {match: privateMatch,...safe}=automaticFixture(f,now);
     if(privateMatch?.phase==='live'&&(f.status==='scheduled'||f.status==='live')){safe.liveMinute=privateMatch.minute;safe.liveClock=matchPeriod(privateMatch)==='interval'?'Half-time':formatMatchMinute(privateMatch);}
     if(lineupAvailable(f,now)) return safe;
     const {lineup: hidden,...visible}=safe;

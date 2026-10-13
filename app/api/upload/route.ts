@@ -1,3 +1,19 @@
 import {saveMedia} from '../../../lib/media';
 import {canEdit,sameOrigin} from '../../storage';
-export async function POST(request:Request){try{if(!sameOrigin(request)||!await canEdit())return Response.json({error:'You do not have permission to upload photos.'},{status:403});if(Number(request.headers.get('content-length')||0)>8500000)return Response.json({error:'Please choose a photo smaller than 8 MB.'},{status:413});const data=await request.formData();const file=data.get('file');if(!(file instanceof File)||file.size>8*1024*1024)return Response.json({error:'Please choose a JPG, PNG or WebP photo smaller than 8 MB.'},{status:400});const bytes=await file.arrayBuffer(),b=new Uint8Array(bytes);const ext=b[0]===255&&b[1]===216&&b[2]===255?'jpg':b[0]===137&&b[1]===80&&b[2]===78&&b[3]===71?'png':String.fromCharCode(...b.slice(0,4))==='RIFF'&&String.fromCharCode(...b.slice(8,12))==='WEBP'?'webp':null;if(!ext)return Response.json({error:'This file is not a supported photo. Use JPG, PNG or WebP.'},{status:400});const key=crypto.randomUUID()+'.'+ext;await saveMedia(key,Buffer.from(bytes),ext==='jpg'?'image/jpeg':'image/'+ext);return Response.json({url:'/media/'+key})}catch(e){console.error(e);return Response.json({error:'The upload failed. Please try again.'},{status:503})}}
+export const runtime='nodejs';
+export async function POST(request:Request){
+ try{
+  if(!sameOrigin(request))return Response.json({error:'This website address is not authorised for uploads. Ask the administrator to check APP_URL and ADMIN_ALLOWED_ORIGINS.'},{status:403});
+  if(!await canEdit())return Response.json({error:'Your session has expired. Sign in again in another tab, then retry. Your edits are still here.'},{status:401});
+  if(Number(request.headers.get('content-length')||0)>8500000)return Response.json({error:'Please choose a photo smaller than 8 MB.'},{status:413});
+  const data=await request.formData(),file=data.get('file');
+  if(!(file instanceof File)||!file.size||file.size>8*1024*1024)return Response.json({error:'Please choose a photo smaller than 8 MB.'},{status:400});
+  // Load decoders inside the handler so a missing host dependency returns JSON.
+  let preparePhoto:typeof import('../../../lib/photo-upload')['preparePhoto'];
+  try{({preparePhoto}=await import('../../../lib/photo-upload'))}catch(e){console.error('Photo decoder could not load',e);return Response.json({error:'Photo processing is unavailable on this server. Ask the site administrator to reinstall dependencies and redeploy.'},{status:503})}
+  let photo:Buffer;
+  try{photo=await preparePhoto(Buffer.from(await file.arrayBuffer()))}catch{return Response.json({error:'This image could not be read. Use JPG, PNG, WebP, GIF, AVIF, HEIC/HEIF, TIFF, BMP or SVG.'},{status:400})}
+  const key=crypto.randomUUID()+'.webp';await saveMedia(key,photo,'image/webp');
+  return Response.json({url:'/media/'+key});
+ }catch(e){console.error(e);return Response.json({error:'The upload failed. Please try again.'},{status:503})}
+}

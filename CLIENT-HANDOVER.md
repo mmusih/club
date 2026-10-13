@@ -35,6 +35,8 @@ Only the selected club's matches are added. Re-importing skips matching dates, t
 
 The PDF's TRFA and BFA logos appear as competition branding. Team logos continue to use the existing shared badge library. PDF reading runs in Node.js using the installed PDF.js dependency; Python and external PDF services are not required on the host.
 
+The small **View league fixtures** button in the public Fixtures section opens the full schedule for every team, with a week filter and competition/season selector. Imports save all PDF rows for this view while adding only the selected academy team's matches to the main calendar. Re-importing replaces the full schedule for the same competition and season, and preserves other schedules. If you imported before this feature was added, re-import the PDF and publish once; existing academy fixtures will be skipped as duplicates. All league kick-offs default to 16:00 CAT.
+
 - **Club details:** name, headline, introduction, location, email and telephone number.
 - **Programmes:** teams, age labels, descriptions, training times and team photos.
 - **Photo gallery:** upload JPG, PNG or WebP files, write captions, choose collections and select a cover photo. Maximum upload size is 8 MB per photo.
@@ -104,3 +106,11 @@ Open Team logos in the club dashboard to upload a badge for each academy team or
 ### Separate profile photos and headshots
 
 Upload the public profile photo and the lineup headshot independently in Player profiles. The profile photo appears on the full public profile and large squad cards. The headshot appears on the lineup pitch, substitutes, replacement choices and compact editor lists. Each image has its own preview, replace and remove controls. Save the profile, then use Refresh photos in an open lineup editor. Existing photos remain profile photos; upload a separate headshot for compact displays. Until then, those displays use a shirt/number placeholder.
+
+### Connected goals and assists
+
+In a player’s Match statistics, add a goal or assist detail and choose the teammate from the saved-player list. Saving updates the matching goal/assist on both profiles and adjusts their totals. Edit or remove the detail on either profile to correct both sides. Shared match date, season and opponent corrections also update connected match records. Existing name-only details link on the next save when there is exactly one matching player; choose explicitly when names are ambiguous. Create a missing teammate profile first.
+
+Minutes, saves, cards and injuries remain individual to each player. Match-tracker records already feed all selected players automatically; edit those records in Fixtures. New teammate match records start with zero minutes until confirmed. A save updates every connected profile together; if another editor has changed a linked profile, reopen its latest version before editing it.
+
+View league fixtures shows the complete imported league schedule, with competition/season and week filters. On phones, swipe the table horizontally to see away teams, kick-off times and venues.

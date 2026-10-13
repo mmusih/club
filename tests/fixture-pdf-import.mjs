@@ -22,8 +22,22 @@ if(process.argv[2]){
 const first=prepareFixtureImport(rows,content,seed.name,'Boys’ Senior Team','trfa');
 assert.equal(first.fixtures.length,process.argv[2]?22:1);assert.ok(first.fixtures.every(f=>f.time==='16:00'&&f.goalsFor===null));
 if(process.argv[2]){assert.equal(first.fixtures.filter(f=>f.homeAway==='home').length,11);assert.equal(first.fixtures.filter(f=>f.homeAway==='away').length,11);assert.equal(first.fixtures.at(-1).date,'2027-04-04')}
-const updated={...content,fixtures:first.fixtures};assert.equal(contentSchema.safeParse(updated).success,true);
+const updated={...content,fixtures:first.fixtures,leagueSchedules:first.leagueSchedules};assert.equal(contentSchema.safeParse(updated).success,true);
+assert.equal(first.leagueSchedules.length,1);
+assert.equal(first.leagueSchedules[0].fixtures.length,rows.length,'Retain every league match, not only the academy matches');
+assert.ok(first.leagueSchedules[0].fixtures.every(f=>f.time==='16:00'));
+const {publicContent}=await import('../app/lineup.ts');
+assert.deepEqual(publicContent(contentSchema.parse(updated)).leagueSchedules,first.leagueSchedules,'Full schedule survives validation and public read-back');
 const second=prepareFixtureImport(rows,updated,seed.name,'Boys’ Senior Team','trfa');assert.equal(second.fixtures.length,0);assert.equal(second.skipped,first.fixtures.length);
+assert.equal(second.leagueSchedules.length,1,'Re-import replaces the schedule instead of appending a duplicate');
+assert.equal(second.leagueSchedules[0].fixtures.length,rows.length);
+const revised=prepareFixtureImport(rows.map((r,i)=>i===0?{...r,venue:'Updated ground'}:r),updated,seed.name,'Boys’ Senior Team','trfa');
+assert.equal(revised.leagueSchedules[0].fixtures[0].venue,'Updated ground');
+const historical={...first.leagueSchedules[0],season:'2025/26'};
+const otherLeague={...first.leagueSchedules[0],competitionId:'other',competition:'Other league'};
+assert.equal(prepareFixtureImport(rows,{...updated,leagueSchedules:[historical,otherLeague,...first.leagueSchedules]},seed.name,'Boys’ Senior Team','trfa').leagueSchedules.length,3,'Keep other seasons and competitions');
+assert.equal(contentSchema.safeParse({...updated,leagueSchedules:[{...first.leagueSchedules[0],fixtures:[{...rows[0],time:'25:00'}]}]}).success,false);
+assert.equal(contentSchema.safeParse({...updated,leagueSchedules:[first.leagueSchedules[0],first.leagueSchedules[0]]}).success,false);
 const existing={...first.fixtures[0],status:'played',goalsFor:3,goalsAgainst:1};
 const preserved=prepareFixtureImport(rows,{...content,fixtures:[existing]},seed.name,'Boys’ Senior Team','trfa');assert.equal(preserved.skipped,1);assert.equal(existing.goalsFor,3);
 assert.throws(()=>prepareFixtureImport(rows,content,seed.name,'Boys’ Senior Team','missing'),/Choose/);

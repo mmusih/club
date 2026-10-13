@@ -1,0 +1,48 @@
+import assert from 'node:assert/strict';
+import {registerHooks} from 'node:module';
+registerHooks({resolve(specifier,context,next){try{return next(specifier,context)}catch(error){if(specifier.startsWith('.')&&!/\.[a-z]+$/.test(specifier))return next(specifier+'.ts',context);throw error}}});
+const {connectPlayerRecords,withContributions,detachPlayerConnections}=await import('../app/player-connections.ts');
+const {newPlayer,playerSchema}=await import('../app/player-model.ts');
+const make=name=>({...newPlayer(),name,ageGroup:'Senior',version:1});
+const a=make('Chad'),b=make('Tumo'),c=make('Eric');
+const match={id:crypto.randomUUID(),date:'2026-10-13',season:'2026/27',opponent:'Palapye United',minutes:90,goals:0,assists:0,saves:0,yellowCards:1};
+const goal={id:crypto.randomUUID(),kind:'goal',minute:59,partner:'Eric',partnerId:c.id};
+const assist={id:crypto.randomUUID(),kind:'assist',minute:15,partner:'Tumo',partnerId:b.id};
+let players=[a,b,c];
+function save(id,input){
+ const changes=connectPlayerRecords(players,id,playerSchema.parse(input));
+ for(const data of changes.values())assert.ok(playerSchema.safeParse(data).success,JSON.stringify(playerSchema.safeParse(data)));
+ players=players.map(p=>changes.has(p.id)?{...changes.get(p.id),id:p.id,version:p.version+1,updatedAt:''}:p);
+ return changes;
+}
+const get=id=>players.find(p=>p.id===id);
+save(a.id,{...a,matches:[withContributions(match,[goal,assist])]});
+assert.equal(get(a.id).matches[0].goals,1);assert.equal(get(a.id).matches[0].assists,1);
+assert.equal(get(b.id).matches[0].goals,1);assert.equal(get(c.id).matches[0].assists,1);
+assert.equal(get(b.id).matches[0].minutes,0,'Never copy minutes or disciplinary stats to a teammate');
+assert.equal(get(b.id).matches[0].yellowCards,undefined);
+assert.equal(save(a.id,get(a.id)).size,1,'Saving twice never increments the counterpart or its version');
+save(c.id,{...get(c.id),name:'Eric Pono',matches:get(c.id).matches.map(m=>({...m,date:'2026-10-14',contributions:m.contributions.map(e=>({...e,minute:60}))}))});
+assert.equal(get(a.id).matches[0].contributions.find(e=>e.id===goal.id).minute,60);
+assert.equal(get(a.id).matches[0].contributions.find(e=>e.id===goal.id).partner,'Eric Pono');
+assert.equal(get(a.id).matches[0].date,'2026-10-14');assert.equal(get(b.id).matches[0].date,'2026-10-14');
+save(a.id,{...get(a.id),matches:get(a.id).matches.map(m=>withContributions(m,m.contributions.filter(e=>e.id!==assist.id)))});
+assert.equal(get(b.id).matches.length,0,'Removing a contribution removes its auto-created empty counterpart match');
+assert.equal(get(a.id).matches[0].assists,0);
+save(a.id,{...get(a.id),matches:get(a.id).matches.map(m=>({...m,contributions:m.contributions.map(e=>({...e,partnerId:b.id,partner:'Tumo'}))}))});
+assert.equal(get(c.id).matches.length,0,'Changing the teammate clears the old link');assert.equal(get(b.id).matches[0].assists,1);
+save(a.id,{...get(a.id),matches:[]});assert.equal(get(b.id).matches.length,0,'Deleting a match removes the reciprocal event');
+// Existing name-only records and manually entered totals must not be duplicated.
+players=[{...a,matches:[{...match,goals:1,contributions:[{...goal,partnerId:undefined}]}]},b,{...c,matches:[{...match,id:crypto.randomUUID(),minutes:45,assists:1,contributions:[{id:crypto.randomUUID(),kind:'assist',minute:59,partner:'Chad'}]}]}];
+save(a.id,get(a.id));assert.equal(get(c.id).matches[0].assists,1);assert.equal(get(c.id).matches[0].contributions.length,1);assert.equal(get(c.id).matches[0].minutes,45);
+assert.equal(save(a.id,get(a.id)).size,1);
+save(a.id,{...get(a.id),matches:[]});assert.equal(get(c.id).matches[0].assists,0);assert.equal(get(c.id).matches[0].minutes,45,'Removal preserves independent match stats');
+players=[a,b,c,{...make('Eric')}];
+assert.throws(()=>connectPlayerRecords(players,a.id,{...a,matches:[{...match,goals:1,contributions:[{...goal,partnerId:undefined}]}]}),/More than one/);
+assert.throws(()=>connectPlayerRecords(players,a.id,{...a,matches:[{...match,goals:1,contributions:[{...goal,partnerId:a.id}]}]}),/another player/);
+const old={...match,goals:3,contributions:[goal]};
+assert.equal(withContributions(old,[goal,{...goal,id:crypto.randomUUID()}]).goals,3,'Named details do not duplicate an already entered total');
+assert.equal(withContributions(old,[]).goals,2,'Deletion subtracts only the removed named goal');
+players=[a,b,c];save(a.id,{...a,matches:[withContributions(match,[goal,{...goal,id:crypto.randomUUID()}])]});assert.equal(get(c.id).matches[0].assists,2,'Two distinct goals at the same minute must remain separate');assert.equal(save(a.id,get(a.id)).size,1);
+const detached=detachPlayerConnections([{...a,matches:[{...match,goals:1,contributions:[goal]}]},c],c.id);assert.equal(detached[0].matches[0].contributions[0].partnerId,undefined);assert.equal(detached[0].matches[0].goals,1);assert.equal(detached[0].matches[0].contributions[0].partner,'Deleted player');
+console.log('PASS: two-way goals/assists, totals, correction, removal, teammate reassignment, rename, shared match details, legacy deduplication, ambiguous names and unrelated player statistics.');
