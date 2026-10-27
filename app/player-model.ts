@@ -1,26 +1,38 @@
 import { z } from 'zod';
 import {eligibilityIssue} from './player-eligibility';
 import { imageUrl, seasonSchema } from './validation';
-export const positions=['Goalkeeper','Defender','Midfielder','Forward'] as const;
+export const positions=['Goalkeeper','Defender','Centre-back','Left-back','Right-back','Left wing-back','Right wing-back','Midfielder','Defensive midfielder','Central midfielder','Attacking midfielder','Left winger','Right winger','Forward','Centre-forward','Striker'] as const;
+export const experienceLevels=['Academy / youth','Amateur','Semi-professional','Professional','Other'] as const;
+export const recruitmentStatuses=['Open to enquiries','Available for trials','Available for loan','Available for transfer','Not currently available'] as const;
 import {videoSource} from './video-source';
 export {videoSource} from './video-source';
 const date=z.string().refine(s=>/^\d{4}-\d{2}-\d{2}$/.test(s)&&!Number.isNaN(Date.parse(s))&&new Date(s).toISOString().slice(0,10)===s,'Enter a valid date.');
 const recordId=z.string().uuid();
 export const playerSchema=z.object({
+ team:z.string().trim().max(100).optional(),
+ heightCm:z.union([z.literal(''),z.number().finite().min(50,'Height must be at least 50 cm.').max(250,'Height must be no more than 250 cm.')]).optional(),
+ secondaryPosition:z.union([z.literal(''),z.enum(positions)]).optional(),
+ nationality:z.string().trim().max(100).optional(),
+ experienceLevel:z.union([z.literal(''),z.enum(experienceLevels)]).optional(),
+ experienceDetails:z.string().trim().max(2000).optional(),
+ strengths:z.string().trim().max(2000).optional(),
+ achievements:z.string().trim().max(2000).optional(),
+ recruitmentStatus:z.union([z.literal(''),z.enum(recruitmentStatuses)]).optional(),
+ clubHistory:z.array(z.object({id:recordId,club:z.string().trim().min(1,'Enter the previous club or remove this history entry.').max(100),team:z.string().trim().max(100),startYear:z.number().int().min(1900).max(2100),endYear:z.union([z.literal(''),z.number().int().min(1900).max(2100)]),notes:z.string().trim().max(1500)}).refine(r=>r.endYear===''||r.endYear>=r.startYear,{message:'End year must be on or after the start year.',path:['endYear']})).max(40).optional(),
  dateOfBirth:z.union([z.literal(''),date]).optional(),name:z.string().trim().min(1,'Enter a player display name.').max(100),ageGroup:z.string().trim().min(1,'Enter an age group.').max(40),position:z.enum(positions),foot:z.enum(['Right','Left','Both','Not specified']),number:z.union([z.literal(''),z.number().int().min(1).max(99)]),bio:z.string().trim().max(3000),photo:z.union([z.literal(''),imageUrl]),headshot:z.union([z.literal(''),imageUrl]).optional(),status:z.enum(['draft','published']),consent:z.boolean(),
  videos:z.array(z.object({id:recordId,title:z.string().trim().min(1,'Enter a video title, or remove this video entry.').max(120),url:z.string().max(2000).refine(s=>!!videoSource(s),'Use a YouTube, Vimeo, or HTTPS MP4/WebM link.')})).max(30),
  matches:z.array(z.object({id:recordId,sharedMatchId:recordId.optional(),autoLinked:z.boolean().optional(),date,season:seasonSchema,opponent:z.string().trim().min(1,'Enter the opponent, or remove this match entry.').max(100),yellowCards:z.number().int().min(0).max(2).optional(),redCards:z.number().int().min(0).max(1).optional(),injuries:z.number().int().min(0).max(100).optional(),minutes:z.number().int().min(0).max(210),goals:z.number().int().min(0).max(50),assists:z.number().int().min(0).max(50),saves:z.number().int().min(0).max(100),contributions:z.array(z.object({id:recordId,kind:z.enum(['goal','assist']),minute:z.number().int().min(1).max(150),partner:z.string().trim().max(100),partnerId:recordId.optional()})).max(100).optional()})).max(300)
-}).superRefine((p,ctx)=>{const issue=eligibilityIssue(p);if(issue)ctx.addIssue({code:'custom',path:['dateOfBirth'],message:issue});if(p.status==='published'&&!p.consent)ctx.addIssue({code:'custom',path:['consent'],message:'Record guardian permission before making a youth profile public.'});p.matches.forEach((m,i)=>{if(new Set((m.contributions||[]).map(c=>c.id)).size!==(m.contributions||[]).length)ctx.addIssue({code:'custom',path:['matches',i,'contributions'],message:'Duplicate contribution IDs are not allowed.'});for(const kind of ['goal','assist'] as const){if((m.contributions||[]).filter(c=>c.kind===kind).length>m[kind==='goal'?'goals':'assists'])ctx.addIssue({code:'custom',path:['matches',i,'contributions'],message:'Named contributions cannot exceed the corresponding goal or assist total.'});}if((m.contributions||[]).some(c=>c.kind==='assist'&&!c.partner))ctx.addIssue({code:'custom',path:['matches',i,'contributions'],message:'Enter the goal scorer for each assist.'});});for(const k of ['matches','videos'] as const){if(new Set(p[k].map(x=>x.id)).size!==p[k].length)ctx.addIssue({code:'custom',path:[k],message:'Duplicate record IDs are not allowed.'});}});
+}).superRefine((p,ctx)=>{if(p.secondaryPosition&&p.secondaryPosition===p.position)ctx.addIssue({code:'custom',path:['secondaryPosition'],message:'Choose a secondary position different from the primary position.'});if(new Set((p.clubHistory||[]).map(r=>r.id)).size!==(p.clubHistory||[]).length)ctx.addIssue({code:'custom',path:['clubHistory'],message:'Duplicate club history IDs are not allowed.'});const issue=eligibilityIssue(p);if(issue)ctx.addIssue({code:'custom',path:['dateOfBirth'],message:issue});if(p.status==='published'&&!p.consent)ctx.addIssue({code:'custom',path:['consent'],message:'Record guardian permission before making a youth profile public.'});p.matches.forEach((m,i)=>{if(new Set((m.contributions||[]).map(c=>c.id)).size!==(m.contributions||[]).length)ctx.addIssue({code:'custom',path:['matches',i,'contributions'],message:'Duplicate contribution IDs are not allowed.'});for(const kind of ['goal','assist'] as const){if((m.contributions||[]).filter(c=>c.kind===kind).length>m[kind==='goal'?'goals':'assists'])ctx.addIssue({code:'custom',path:['matches',i,'contributions'],message:'Named contributions cannot exceed the corresponding goal or assist total.'});}if((m.contributions||[]).some(c=>c.kind==='assist'&&!c.partner))ctx.addIssue({code:'custom',path:['matches',i,'contributions'],message:'Enter the goal scorer for each assist.'});});for(const k of ['matches','videos'] as const){if(new Set(p[k].map(x=>x.id)).size!==p[k].length)ctx.addIssue({code:'custom',path:[k],message:'Duplicate record IDs are not allowed.'});}});
 export type PlayerData=z.infer<typeof playerSchema>;
 export type Player=PlayerData & {id:string;version:number;updatedAt:string;fixtureMatches?:PlayerData['matches']};
 export type PublicPlayer=Omit<Player,'consent'|'status'|'version'|'dateOfBirth'>;
 export function publicPlayer(p:Player):PublicPlayer{const {consent,status,version,dateOfBirth,...visible}=p;return visible;}
-export function newPlayer():Player{return {id:crypto.randomUUID(),version:0,updatedAt:'',dateOfBirth:'',name:'',ageGroup:'',position:'Midfielder',foot:'Not specified',number:'',bio:'',photo:'',headshot:'',status:'draft',consent:false,videos:[],matches:[]};}
+export function newPlayer():Player{return {id:crypto.randomUUID(),version:0,updatedAt:'',team:'',heightCm:'',secondaryPosition:'',nationality:'',experienceLevel:'',experienceDetails:'',strengths:'',achievements:'',recruitmentStatus:'',clubHistory:[],dateOfBirth:'',name:'',ageGroup:'',position:'Midfielder',foot:'Not specified',number:'',bio:'',photo:'',headshot:'',status:'draft',consent:false,videos:[],matches:[]};}
 export function totals(matches:PlayerData['matches']){return matches.reduce((s,m)=>({appearances:s.appearances+1,minutes:s.minutes+m.minutes,goals:s.goals+m.goals,assists:s.assists+m.assists,saves:s.saves+m.saves,yellowCards:s.yellowCards+(m.yellowCards||0),redCards:s.redCards+(m.redCards||0),injuries:s.injuries+(m.injuries||0)}),{appearances:0,minutes:0,goals:0,assists:0,saves:0,yellowCards:0,redCards:0,injuries:0});}
 export function formatDate(value:string){return new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}).format(new Date(value));}
 
 export function playerIssueMessage(issue: {path: (string|number)[]; message:string}) {
  const path=issue.path[0]==='player'?issue.path.slice(1):issue.path;
- const section=path[0]==='matches'?'Match':path[0]==='videos'?'Video':'';
+ const section=path[0]==='matches'?'Match':path[0]==='videos'?'Video':path[0]==='clubHistory'?'Club history':'';
  return section && typeof path[1]==='number' ? section+' '+(path[1]+1)+': '+issue.message : issue.message;
 }
