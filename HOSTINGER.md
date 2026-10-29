@@ -2,6 +2,10 @@
 
 This is a Next.js server application. Use Hostinger's **Deploy Web App / Node.js** feature, not a static upload to `public_html`.
 
+## Current deployment: GitHub
+
+The live Hostinger application is connected to `https://github.com/mmusih/club`. Deliver application updates through the connected GitHub branch and Hostinger's Git deployment/redeploy flow. ZIP uploads below are a legacy/manual fallback. Keep passwords and private `outputs/` files out of GitHub. Runtime environment variables remain configured in Hostinger.
+
 ## Prepared files
 
 - `outputs/hostinger-upload.zip`: website source, package lockfile and MySQL migrations. No passwords, local database files, or private data exports.
@@ -28,10 +32,17 @@ This is a Next.js server application. Use Hostinger's **Deploy Web App / Node.js
 | `DB_USER` | Full database username, including the prefix |
 | `DB_PASSWORD` | Database user's password |
 | `DB_SSL` | `false` for the local Hostinger connection; `true` for remote TLS connections |
-| `ADMIN_EMAIL` | Email of the single club administrator |
+| `ADMIN_EMAIL` | Email of the original club administrator; keep it when adding accounts |
 | `ADMIN_PASSWORD_HASH` | Complete `scrypt:...` output from the password helper |
+| `ADMIN_ADDITIONAL_ACCOUNTS` | Optional JSON array of additional administrators: `[{"email":"shakes@eyesontheball.co.bw","passwordHash":"scrypt:..."}]` |
 
 Restart/redeploy after changing environment variables. If the public domain changes, update `APP_URL` too; it protects all write operations against cross-origin requests.
+
+### Additional dashboard administrators
+
+Deploy the application version that supports `ADMIN_ADDITIONAL_ACCOUNTS` first. Keep the existing `ADMIN_EMAIL` and `ADMIN_PASSWORD_HASH` unchanged. Generate a separate password hash with `npm run admin:password`, then add an object containing `email` and `passwordHash` to the JSON array in `ADMIN_ADDITIONAL_ACCOUNTS`. If the array already contains accounts, retain them and append the new account. Enter the array as the environment variable value without wrapping it in extra quotes in hPanel. Save and restart/redeploy, then verify both the original login and the added login at `/admin/login`.
+
+All configured administrators have full dashboard access. Additional accounts cannot override the original account's email. Invalid additional entries are ignored; malformed JSON disables additional logins while preserving the original account. Removing an entry or changing its password hash invalidates that account's sessions without affecting other administrators. No database migration is required.
 
 ## Storage and maintenance
 
