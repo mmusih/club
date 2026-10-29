@@ -35,7 +35,7 @@ export async function preparePortrait(file:File,maxDimension:number):Promise<Fil
 export async function uploadPortrait(file:File,field:'photo'|'headshot'){
  const prepared=await preparePortrait(file,field==='headshot'?1024:2048);
  if(prepared.size>8*1024*1024)throw new Error('This photo could not be reduced below 8 MB. Choose a smaller image.');
- const form=new FormData();form.append('file',prepared);
+ const form=new FormData();form.append('file',prepared);form.append('portraitAspect',field==='headshot'?'1:1':'4:5');
  let response:Response;
  try{response=await fetch('/api/upload',{method:'POST',body:form,headers:{Accept:'application/json'},credentials:'same-origin'})}catch{throw new Error('The upload could not reach the server. Check your connection and try again.')}
  return readUploadResponse(response);
