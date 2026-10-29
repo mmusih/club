@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import {eligibilityIssue} from './player-eligibility';
+import {ageToday,eligibilityIssue} from './player-eligibility';
 import { imageUrl, seasonSchema } from './validation';
 export const positions=['Goalkeeper','Defender','Centre-back','Left-back','Right-back','Left wing-back','Right wing-back','Midfielder','Defensive midfielder','Central midfielder','Attacking midfielder','Left winger','Right winger','Forward','Centre-forward','Striker'] as const;
 export const experienceLevels=['Academy / youth','Amateur','Semi-professional','Professional','Other'] as const;
@@ -9,6 +9,7 @@ export {videoSource} from './video-source';
 const date=z.string().refine(s=>/^\d{4}-\d{2}-\d{2}$/.test(s)&&!Number.isNaN(Date.parse(s))&&new Date(s).toISOString().slice(0,10)===s,'Enter a valid date.');
 const recordId=z.string().uuid();
 export const playerSchema=z.object({
+ maId:z.string().trim().max(40).optional(),
  team:z.string().trim().max(100).optional(),
  heightCm:z.union([z.literal(''),z.number().finite().min(50,'Height must be at least 50 cm.').max(250,'Height must be no more than 250 cm.')]).optional(),
  secondaryPosition:z.union([z.literal(''),z.enum(positions)]).optional(),
@@ -25,8 +26,8 @@ export const playerSchema=z.object({
 }).superRefine((p,ctx)=>{if(p.secondaryPosition&&p.secondaryPosition===p.position)ctx.addIssue({code:'custom',path:['secondaryPosition'],message:'Choose a secondary position different from the primary position.'});if(new Set((p.clubHistory||[]).map(r=>r.id)).size!==(p.clubHistory||[]).length)ctx.addIssue({code:'custom',path:['clubHistory'],message:'Duplicate club history IDs are not allowed.'});const issue=eligibilityIssue(p);if(issue)ctx.addIssue({code:'custom',path:['dateOfBirth'],message:issue});if(p.status==='published'&&!p.consent)ctx.addIssue({code:'custom',path:['consent'],message:'Record guardian permission before making a youth profile public.'});p.matches.forEach((m,i)=>{if(new Set((m.contributions||[]).map(c=>c.id)).size!==(m.contributions||[]).length)ctx.addIssue({code:'custom',path:['matches',i,'contributions'],message:'Duplicate contribution IDs are not allowed.'});for(const kind of ['goal','assist'] as const){if((m.contributions||[]).filter(c=>c.kind===kind).length>m[kind==='goal'?'goals':'assists'])ctx.addIssue({code:'custom',path:['matches',i,'contributions'],message:'Named contributions cannot exceed the corresponding goal or assist total.'});}if((m.contributions||[]).some(c=>c.kind==='assist'&&!c.partner))ctx.addIssue({code:'custom',path:['matches',i,'contributions'],message:'Enter the goal scorer for each assist.'});});for(const k of ['matches','videos'] as const){if(new Set(p[k].map(x=>x.id)).size!==p[k].length)ctx.addIssue({code:'custom',path:[k],message:'Duplicate record IDs are not allowed.'});}});
 export type PlayerData=z.infer<typeof playerSchema>;
 export type Player=PlayerData & {id:string;version:number;updatedAt:string;fixtureMatches?:PlayerData['matches']};
-export type PublicPlayer=Omit<Player,'consent'|'status'|'version'|'dateOfBirth'>;
-export function publicPlayer(p:Player):PublicPlayer{const {consent,status,version,dateOfBirth,...visible}=p;return visible;}
+export type PublicPlayer=Omit<Player,'consent'|'status'|'version'|'dateOfBirth'|'maId'> & {age?:number|null};
+export function publicPlayer(p:Player):PublicPlayer{const {consent,status,version,dateOfBirth,maId,...visible}=p;return {...visible,age:ageToday(dateOfBirth||'')};}
 export function newPlayer():Player{return {id:crypto.randomUUID(),version:0,updatedAt:'',team:'',heightCm:'',secondaryPosition:'',nationality:'',experienceLevel:'',experienceDetails:'',strengths:'',achievements:'',recruitmentStatus:'',clubHistory:[],dateOfBirth:'',name:'',ageGroup:'',position:'Midfielder',foot:'Not specified',number:'',bio:'',photo:'',headshot:'',status:'draft',consent:false,videos:[],matches:[]};}
 export function totals(matches:PlayerData['matches']){return matches.reduce((s,m)=>({appearances:s.appearances+1,minutes:s.minutes+m.minutes,goals:s.goals+m.goals,assists:s.assists+m.assists,saves:s.saves+m.saves,yellowCards:s.yellowCards+(m.yellowCards||0),redCards:s.redCards+(m.redCards||0),injuries:s.injuries+(m.injuries||0)}),{appearances:0,minutes:0,goals:0,assists:0,saves:0,yellowCards:0,redCards:0,injuries:0});}
 export function formatDate(value:string){return new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}).format(new Date(value));}

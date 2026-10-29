@@ -2,7 +2,7 @@ import type {PublicPlayer} from '../player-model';
 import {playerTeam} from '../player-teams';
 
 export default function ScoutingProfile({player:p}:{player:PublicPlayer}){
- const facts=[['Current team',playerTeam(p)],['Division / age group',p.ageGroup],['Primary position',p.position],['Secondary position',p.secondaryPosition||'Not specified'],['Height',p.heightCm?`${p.heightCm} cm`:'Not specified'],['Nationality',p.nationality||'Not specified'],['Experience level',p.experienceLevel||'Not specified'],['Preferred foot',p.foot],['Recruitment availability',p.recruitmentStatus||'Contact the club']];
+ const facts=[['Age',p.age==null?'Not recorded':`${p.age} years`],['Current team',playerTeam(p)],['Division / age group',p.ageGroup],['Primary position',p.position],['Secondary position',p.secondaryPosition||'Not specified'],['Height',p.heightCm?`${p.heightCm} cm`:'Not specified'],['Nationality',p.nationality||'Not specified'],['Experience level',p.experienceLevel||'Not specified'],['Preferred foot',p.foot],['Recruitment availability',p.recruitmentStatus||'Contact the club']];
  const history=[...(p.clubHistory||[])].sort((a,b)=>(b.endYear===''?Infinity:b.endYear)-(a.endYear===''?Infinity:a.endYear)||b.startYear-a.startYear||a.club.localeCompare(b.club));
  return <>
   <section className="profile-section"><p className="eyebrow dark">PLAYER DETAILS</p><h2>Scouting overview</h2><dl className="scouting-facts">{facts.map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>

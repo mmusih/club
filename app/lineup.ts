@@ -39,7 +39,8 @@ export function automaticFixture(f:Fixture,now=Date.now()):Fixture {
 }
 export function publicContent(content:Content,now=Date.now()):Content {
   return {...content,fixtures:(content.fixtures||[]).map(f=>{
-    const {match: privateMatch,...safe}=automaticFixture(f,now);
+    const {match: privateMatch,sheet: privateSheet,...safe}=automaticFixture(f,now);
+    void privateSheet;
     if(privateMatch?.phase==='live'&&(f.status==='scheduled'||f.status==='live')){safe.liveMinute=privateMatch.minute;safe.liveClock=matchPeriod(privateMatch)==='interval'?'Half-time':formatMatchMinute(privateMatch);}
     if(lineupAvailable(f,now)) return safe;
     const {lineup: hidden,...visible}=safe;
