@@ -3,7 +3,7 @@ import {seasonForDate} from './seasons';
 import {teamKey} from './team-branding';
 
 export type PdfText={str:string;transform:number[];width:number};
-export type ImportedFixture={number:number;date:string;home:string;away:string;venue:string;round:string};
+export type ImportedFixture={number:number;date:string;home:string;away:string;venue:string;round:string;time?:string};
 export const trfaCompetition='TRFA Division 1 Western Stream';
 
 /** Read the supplied landscape schedule by column position, never by team-name guesses. */
@@ -40,10 +40,13 @@ export function parseFixturePages(pages:{width:number;items:PdfText[]}[]):Import
    const dateText=items.filter(t=>t.transform[4]/page.width>0.125&&center(t)<bounds[0]).map(t=>t.str).join(' ');
    const dateMatch=dateText.match(/\b(\d{2})\/(\d{2})\/(\d{4})\b/);
    const cell=(left:number,right:number)=>items.filter(t=>center(t)>=left&&center(t)<right).map(t=>t.str.trim()).join(' ').replace(/\s+/g,' ').trim();
-   const home=cell(bounds[0],bounds[1]),away=cell(bounds[1],bounds[2]),venue=cell(bounds[2],Infinity);
+   const timeItem=items.find(t=>center(t)>=bounds[2]&&/^\d{4}\s*HRS$/i.test(t.str.trim()));
+   const time=timeItem?timeItem.str.trim().replace(/^(\d{2})(\d{2})\s*HRS$/i,'$1:$2'):undefined;
+   if(time&&!/^([01]\d|2[0-3]):[0-5]\d$/.test(time))throw new Error(`Invalid kick-off time for fixture ${number}.`);
+   const home=cell(bounds[0],bounds[1]),away=cell(bounds[1],bounds[2]),venue=cell(bounds[2],timeItem?center(timeItem):Infinity);
    const date=dateMatch?`${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`:'';
    if(!date||!Number.isFinite(Date.parse(date))||new Date(date).toISOString().slice(0,10)!==date||!home||!away||!venue||!week)throw new Error(`Could not read fixture ${number} on page ${pageIndex+1}. Check the PDF table before importing.`);
-   fixtures.push({number,date,home,away,venue,round:week});
+   fixtures.push({number,date,home,away,venue,round:week,...(time?{time}:{})});
   }
  }
  if(!fixtures.length)throw new Error('No fixtures found. Choose a text-based TRFA fixture PDF in the supplied table format.');
@@ -59,12 +62,12 @@ export function prepareFixtureImport(rows:ImportedFixture[],content:Content,pdfT
  const fixtures:Fixture[]=[];
  for(const row of rows){
   const home=teamKey(row.home)===teamKey(pdfTeam),away=teamKey(row.away)===teamKey(pdfTeam);if(!home&&!away)continue;
-  const f:Fixture={id:crypto.randomUUID(),date:row.date,season:seasonForDate(row.date),time:'16:00',team:academyTeam,opponent:home?row.away:row.home,venue:row.venue,homeAway:home?'home':'away',competition:competition.name,competitionId:competition.id,round:row.round,status:'scheduled',goalsFor:null,goalsAgainst:null};
+  const f:Fixture={id:crypto.randomUUID(),date:row.date,season:seasonForDate(row.date),time:row.time||'16:00',team:academyTeam,opponent:home?row.away:row.home,venue:row.venue,homeAway:home?'home':'away',competition:competition.name,competitionId:competition.id,round:row.round,status:'scheduled',goalsFor:null,goalsAgainst:null};
   if(existing.has(key(f))){skipped++;continue}existing.add(key(f));fixtures.push(f);
  }
  if(content.fixtures.length+fixtures.length>200)throw new Error('This import would exceed the 200-fixture limit. Remove old fixtures first.');
  const seasons=[...new Set(rows.map(r=>seasonForDate(r.date)))];
- const leagueSchedules:LeagueSchedule[]=[...(content.leagueSchedules||[]).filter(s=>s.competitionId!==competition.id||!seasons.includes(s.season)),...seasons.map(season=>({competitionId:competition.id,competition:competition.name,season,fixtures:rows.filter(r=>seasonForDate(r.date)===season).map(r=>({...r,time:'16:00'}))}))];
+ const leagueSchedules:LeagueSchedule[]=[...(content.leagueSchedules||[]).filter(s=>s.competitionId!==competition.id||!seasons.includes(s.season)),...seasons.map(season=>({competitionId:competition.id,competition:competition.name,season,fixtures:rows.filter(r=>seasonForDate(r.date)===season).map(r=>({...r,time:r.time||'16:00'}))}))];
  if(leagueSchedules.length>20)throw new Error('The saved league schedule limit has been reached.');
  return {fixtures,skipped,leagueSchedules};
 }
