@@ -38,6 +38,10 @@ The live Hostinger application is connected to `https://github.com/mmusih/club`.
 
 Restart/redeploy after changing environment variables. If the public domain changes, update `APP_URL` too; it protects all write operations against cross-origin requests.
 
+### "Invalid request origin" at sign-in
+
+Set `APP_URL` to the public HTTPS address administrators should use, then restart/redeploy. Check the actual hPanel setting: the saved `.env.hostinger-deploy` configuration may still point to the temporary Hostinger domain. The login page moves visitors to `APP_URL` before submitting credentials, keeping the session cookie and dashboard on the same host even when someone opens a `www` or preview-domain bookmark. It preserves the requested dashboard page. This redirect requires browser JavaScript; without it, open `APP_URL` directly. Origin checks remain enforced on login and all write endpoints.
+
 ### Additional dashboard administrators
 
 Deploy the application version that supports `ADMIN_ADDITIONAL_ACCOUNTS` first. Keep the existing `ADMIN_EMAIL` and `ADMIN_PASSWORD_HASH` unchanged. Generate a separate password hash with `npm run admin:password`, then add an object containing `email` and `passwordHash` to the JSON array in `ADMIN_ADDITIONAL_ACCOUNTS`. If the array already contains accounts, retain them and append the new account. Enter the array as the environment variable value without wrapping it in extra quotes in hPanel. Save and restart/redeploy, then verify both the original login and the added login at `/admin/login`.
