@@ -1,4 +1,4 @@
-import {PDFDocument,StandardFonts,rgb,type RGB,type PDFImage} from 'pdf-lib';
+import {PDFDocument,StandardFonts,rgb,pushGraphicsState,popGraphicsState,moveTo,appendBezierCurve,closePath,clip,endPath,type RGB,type PDFImage} from 'pdf-lib';
 import type {Content,Fixture} from './content';
 import type {Player} from './player-model';
 import {matchSheetRows} from './match-sheet';
@@ -11,7 +11,7 @@ import {matchSheetPhoto} from './match-sheet-photo';
 import {isDeletedPlayer} from './player-deletion';
 
 /** Fixed A4 TRFA form: original starting team in the register, current lineup on the pitch. */
-export async function createMatchSheetPdf(f:Fixture,content:Content,players:Player[],options:{editorCopy?:boolean}={}){
+export async function createMatchSheetPdf(f:Fixture,content:Content,players:Player[],_options:{editorCopy?:boolean}={}){
  const pdf=await PDFDocument.create(),font=await pdf.embedFont(StandardFonts.Helvetica),bold=await pdf.embedFont(StandardFonts.HelveticaBold);
  pdf.setTitle(`Match sheet - ${f.team} vs ${f.opponent} - ${f.date}`);pdf.setAuthor(content.name);
  const page=pdf.addPage([595.28,841.89]),H=841.89,left=26,width=543,ink=rgb(0,0,0),grey=rgb(.65,.65,.65),yellow=rgb(1,1,0),red=rgb(1,0,0),white=rgb(1,1,1);
@@ -77,39 +77,48 @@ export async function createMatchSheetPdf(f:Fixture,content:Content,players:Play
  for(let i=0;i<11;i++)row(rows.starters[i],i+1,197+i*rowHeight);
  section('Substitutes',benchTop);for(let i=0;i<reserveRows;i++)row(rows.substitutes[i],i+12,benchTop+12+i*rowHeight);
  section('PLEASE INDICATE TEAM TACTICS BELOW',469);
- rect(left,481,253,169);box(`Formation: ${f.lineup?.formation||''}`,left,484,253,16,8,true);box(sheet.tactics||'',left,503,253,58,8);
- if(sheet.remarks){box('MATCH OFFICIAL REMARKS',left,565,253,13,7,true);box(sheet.remarks,left,579,253,68,7)}
- const px=left+253,py=481,pw=290,ph=169;
+ rect(left,481,143,179);box(`Formation: ${f.lineup?.formation||''}`,left,484,143,16,8,true);box(sheet.tactics||'',left,503,143,58,8);
+ if(sheet.remarks){box('MATCH OFFICIAL REMARKS',left,565,143,13,7,true);box(sheet.remarks,left,579,143,78,7)}
+ const px=left+143,py=481,pw=400,ph=179;
  rect(px,py,pw,ph,rgb(.08,.42,.22));
- for(let i=0;i<8;i++)if(i%2===0)page.drawRectangle({x:px+2+i*(pw-4)/8,y:H-py-ph+2,width:(pw-4)/8,height:ph-4,color:rgb(.09,.46,.24)});
+ for(let i=0;i<8;i++)if(i%2===0)page.drawRectangle({x:px+2,y:H-py-2-(i+1)*(ph-4)/8,width:pw-4,height:(ph-4)/8,color:rgb(.09,.46,.24)});
  function pitchRect(x:number,y:number,w:number,h:number){page.drawRectangle({x,y:H-y-h,width:w,height:h,borderWidth:.5,borderColor:white})}
  pitchRect(px+5,py+5,pw-10,ph-10);
- pitchRect(px+5,py+ph*.2,32,ph*.6);pitchRect(px+pw-37,py+ph*.2,32,ph*.6);
- pitchRect(px+5,py+ph*.35,12,ph*.3);pitchRect(px+pw-17,py+ph*.35,12,ph*.3);
- page.drawLine({start:{x:px+pw/2,y:H-py-5},end:{x:px+pw/2,y:H-py-ph+5},color:white,thickness:.5});
- page.drawCircle({x:px+pw/2,y:H-py-ph/2,size:22,borderColor:white,borderWidth:.5});
+ pitchRect(px+pw*.32,py+5,pw*.36,22);pitchRect(px+pw*.32,py+ph-27,pw*.36,22);
+ page.drawLine({start:{x:px+5,y:H-py-ph/2},end:{x:px+pw-5,y:H-py-ph/2},color:white,thickness:.5});
+ page.drawEllipse({x:px+pw/2,y:H-py-ph/2,xScale:25,yScale:16,borderColor:white,borderWidth:.5});
+ // Clip the embedded portrait itself, so PDF viewers and printers retain a true circle.
+ function circularPhoto(photo:PDFImage,x:number,top:number,r:number){
+  const y=H-top,k=r*.5522847498;
+  page.pushOperators(pushGraphicsState(),moveTo(x+r,y),
+   appendBezierCurve(x+r,y+k,x+k,y+r,x,y+r),appendBezierCurve(x-k,y+r,x-r,y+k,x-r,y),
+   appendBezierCurve(x-r,y-k,x-k,y-r,x,y-r),appendBezierCurve(x+k,y-r,x+r,y-k,x+r,y),closePath(),clip(),endPath());
+  page.drawImage(photo,{x:x-r,y:y-r,width:r*2,height:r*2});page.pushOperators(popGraphicsState());
+  page.drawCircle({x,y,size:r,borderColor:white,borderWidth:.65});
+ }
  const ids=f.match?(f.match.phase==='pre'?f.match.slots:replayMatch(f.match).slots):[];
  const labels=formationSlots(f.lineup?.formation||'4-3-3').map((pos,i)=>{
   const id=ids[i],p=players.find(p=>p.id===id),deleted=id&&isDeletedPlayer(id),legacy=f.lineup?.starters[i]||'';
   const name=deleted?'Deleted player':p?`${p.number||''} ${p.name}`.trim():id?f.match?.roster?.[id]?.name||'Unavailable player':f.match?'':legacy;
   return {...pos,id,name,photo:deleted?'':p?.headshot||f.lineup?.portraits?.[name]||'',number:p?.number||''};
  });
+ const lineCount=new Set(labels.map(p=>p.y)).size,diameter=lineCount>4?20:24,labelHeight=lineCount>4?14:18;
  for(const p of labels){
   if(!p.name)continue;
-  const x=px+15+(100-p.y)/100*(pw-30),top=py+8+p.x/100*(ph-32),photo=portraits.get(p.photo);
-  if(photo)page.drawImage(photo,{x:x-7,y:H-top-7,width:14,height:14});else{page.drawCircle({x,y:H-top,size:7,color:grey,borderColor:white,borderWidth:.6});box(p.number||'+',x-7,top-7,14,14,7,true,true)}
-  const labelWidth=Math.min(62,(pw-30)/Math.max(2,(f.lineup?.formation||'4-3-3').split('-').length));
-  box(p.name,x-labelWidth/2,top+7,labelWidth,11,4.75,true,true,white);
+  const x=px+p.x/100*pw,top=py+16+(p.y-12)/78*(ph-50),photo=portraits.get(p.photo),radius=diameter/2;
+  if(photo)circularPhoto(photo,x,top,radius);
+  else{page.drawCircle({x,y:H-top,size:radius,color:grey,borderColor:white,borderWidth:.65});box(p.number||'+',x-radius,top-radius,diameter,diameter,10,true,true)}
+  const rowCount=labels.filter(pos=>pos.y===p.y).length,labelWidth=Math.min(120,pw/(rowCount+1)-4);
+  box(p.name,x-labelWidth/2,top+radius,labelWidth,labelHeight,lineCount>4?6:7,true,true,white);
  }
- cells([`Referee: ${f.referee||''}`,`Assistant Referee 1: ${sheet.assistantReferee1||''}`,`Assistant Referee 2: ${sheet.assistantReferee2||''}`],[253,147,143],650,19);
- cells([`4th Official: ${sheet.fourthOfficial||''}`,`Referee assessor: ${sheet.refereeAssessor||''}`],[253,290],669,16);
- section('TEAM OFFICIALS',685);
- cells([`Head Coach: ${sheet.headCoach||''}`,`Assistant Coach: ${sheet.assistantCoach||''}`,`Goalkeeper coach: ${sheet.goalkeeperCoach||''}`],[253,117,173],697,19);
- cells([`Team Medic: ${sheet.medic||''}`,`Official 1: ${sheet.official1||sheet.teamManager||''}`,`Official 2: ${sheet.official2||''}`],[253,147,143],716,16);
- cells([`Official 3: ${sheet.official3||''}`,`Official 4: ${sheet.official4||''}`,`Official 5: ${sheet.official5||''}`],[253,147,143],732,16);
+ cells([`Referee: ${f.referee||''}`,`Assistant Referee 1: ${sheet.assistantReferee1||''}`,`Assistant Referee 2: ${sheet.assistantReferee2||''}`],[253,147,143],660,19);
+ cells([`4th Official: ${sheet.fourthOfficial||''}`,`Referee assessor: ${sheet.refereeAssessor||''}`],[253,290],679,16);
+ section('TEAM OFFICIALS',695);
+ cells([`Head Coach: ${sheet.headCoach||''}`,`Assistant Coach: ${sheet.assistantCoach||''}`,`Goalkeeper coach: ${sheet.goalkeeperCoach||''}`],[253,117,173],707,19);
+ cells([`Team Medic: ${sheet.medic||''}`,`Team Manager: ${sheet.teamManager??sheet.official1??''}`,`Official 2: ${sheet.official2||''}`],[253,147,143],726,16);
+ cells([`Official 3: ${sheet.official3||''}`,`Official 4: ${sheet.official4||''}`,`Official 5: ${sheet.official5||''}`],[253,147,143],742,16);
  const captain=[...rows.starters,...rows.substitutes].find(p=>p.id===sheet.captainId)?.name||'';
- cells(['REFEREE SIGNATURE:',`Team A Captain Name / Signature: ${away?sheet.opponentCaptain||'':captain}`,`Team B Captain Name / Signature: ${away?captain:sheet.opponentCaptain||''}`],[253,147,143],748,24,true);
- box(trfaNotes.join('\n'),left,774,width,48,5.5);
- text(`${f.date} | ${f.team} | ${options.editorCopy?'EDITOR COPY | ':''}1 / 1`,left,826,6);
+ cells(['REFEREE SIGNATURE:',`Team A Captain Name / Signature: ${away?sheet.opponentCaptain||'':captain}`,`Team B Captain Name / Signature: ${away?captain:sheet.opponentCaptain||''}`],[253,147,143],758,24,true);
+ box(trfaNotes.join('\n'),left,784,width,48,5.5);
  return pdf.save();
 }

@@ -40,7 +40,7 @@ const preview=await post(draft);assert.equal(preview.status,200,await preview.cl
 assert.match(preview.headers.get('Cache-Control'),/private, no-store/);
 async function pdfText(response){const task=getDocument({data:new Uint8Array(await response.arrayBuffer()),useSystemFonts:true});try{const pdf=await task.promise;let text='';for(let i=1;i<=pdf.numPages;i++)text+=(await (await pdf.getPage(i)).getTextContent()).items.filter(i=>'str' in i).map(i=>i.str).join(' ');return text}finally{await task.destroy()}}
 const previewText=await pdfText(preview);
-for(const value of ['UNSAVED PREVIEW GROUND','EDITOR COPY','Preview without publishing'])assert.ok(previewText.includes(value),value);
+for(const value of ['UNSAVED PREVIEW GROUND','Preview without publishing'])assert.ok(previewText.includes(value),value);
 assert.deepEqual(globalThis.sheetRoute.fixtures,[],'Preview does not insert or publish the fixture');
 globalThis.sheetRoute.fixtures=JSON.parse(before);
 const players=Array.from({length:6},(_,i)=>({...newPlayer(),name:'Preview Player '+i,ageGroup:'Senior',number:i+1,maId:'00PRE'+i}));
