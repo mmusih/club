@@ -27,6 +27,12 @@ assert.equal((await save({...state.content,fixtures:[{...saved,match:{...saved.m
 r=await save({...state.content,fixtures:[{...saved,match:{...saved.match,bench:[]}}]});assert.equal(r.status,200);
 saved=state.content.fixtures[0];assert.deepEqual(saved.match.bench,[]);assert.deepEqual(saved.lineup.substitutes,[],'Removing the last reserve propagates to the lineup');
 assert.equal(Object.keys(saved.match.roster).length,5,'Unselected profiles are not added to the match snapshot');
+state.players.push(...Array.from({length:14},(_,i)=>({...newPlayer(),name:'Reserve '+i,number:i+8,ageGroup:'Senior',maId:'RES'+i})));
+const selectedReserves=state.players.slice(5,20).map(p=>p.id);
+r=await save({...state.content,fixtures:[{...saved,match:{...saved.match,bench:selectedReserves,substituteLimit:15}}]});assert.equal(r.status,200,await r.clone().text());
+saved=state.content.fixtures[0];assert.deepEqual(saved.match.bench,selectedReserves);assert.equal(saved.lineup.substitutes.length,15,'All selected substitutes propagate beyond nine');
+r=await save({...state.content,fixtures:[{...saved,match:{...saved.match,substituteLimit:undefined}}]});assert.equal(r.status,200);
+saved=state.content.fixtures[0];assert.equal(saved.match.substituteLimit,undefined,'Clearing a user limit persists');
 r=await save({...state.content,fixtures:[{...saved,status:'played',goalsFor:0,goalsAgainst:0,match:{...saved.match,phase:'finished',period:'second',minute:90}}]});assert.equal(r.status,200);
 state.players[0].name='Changed Name';state.players[0].maId='CHANGED';
 r=await save(state.content);assert.equal(r.status,200);saved=state.content.fixtures[0];assert.equal(saved.match.roster[state.players[0].id].name,'Save Test 0');assert.equal(saved.match.roster[state.players[0].id].maId,'00MA0');
