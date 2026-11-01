@@ -4,14 +4,16 @@ import {Upload} from 'lucide-react';
 import type {Content} from '../content';
 import {fixtureTeams} from '../lineup';
 import {teamKey} from '../team-branding';
-import {prepareFixtureImport,trfaCompetition,type ImportedFixture} from '../fixture-import';
+import {fixturesThroughWeek,prepareFixtureImport,trfaCompetition,type ImportedFixture} from '../fixture-import';
 import CompetitionBrand from '../competition-brand';
 
 export default function FixturePdfImport({content,onChange,onBusyChange}:{content:Content;onChange:(c:Content)=>void;onBusyChange:(busy:boolean)=>void}){
  const [rows,setRows]=useState<ImportedFixture[]>([]),[pdfTeam,setPdfTeam]=useState(''),[team,setTeam]=useState(''),[competition,setCompetition]=useState(''),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[error,setError]=useState('');
+ const [lastWeek,setLastWeek]=useState(18),[replace,setReplace]=useState(true);
+ const importRows=fixturesThroughWeek(rows,lastWeek);
  const fileInput=useRef<HTMLInputElement>(null);
  const teams=[...new Map(rows.flatMap(r=>[r.home,r.away]).map(name=>[teamKey(name),name])).values()].sort();
- const selected=rows.filter(r=>teamKey(r.home)===teamKey(pdfTeam)||teamKey(r.away)===teamKey(pdfTeam));
+ const selected=importRows.filter(r=>teamKey(r.home)===teamKey(pdfTeam)||teamKey(r.away)===teamKey(pdfTeam));
  async function read(file?:File){
   if(!file)return;setBusy(true);onBusyChange(true);setError('');setMessage('');setRows([]);
   try{
@@ -31,9 +33,9 @@ export default function FixturePdfImport({content,onChange,onBusyChange}:{conten
    if(!defined)throw new Error('Choose a competition.');
    const competitions=existing.some(c=>c.id===defined.id)?existing:[...existing,defined];
    if(competitions.length>100)throw new Error('The competition limit has been reached. Choose an existing competition.');
-   const result=prepareFixtureImport(rows,{...content,competitions},pdfTeam,team,defined.id);
-   onChange({...content,competitions,leagueSchedules:result.leagueSchedules,fixtures:[...content.fixtures,...result.fixtures]});
-   setMessage(`${result.fixtures.length} fixtures added. ${result.skipped} duplicates skipped. The full ${rows.length}-match league schedule is also saved. Publish changes to make it public.`);setRows([]);setError('');
+   const result=prepareFixtureImport(importRows,{...content,competitions},pdfTeam,team,defined.id,{replace});
+   onChange({...content,competitions,leagueSchedules:result.leagueSchedules,fixtures:result.allFixtures});
+   setMessage(`${result.fixtures.length} academy fixtures imported; ${result.replaced} existing fixtures replaced. ${result.skipped} duplicates skipped. The ${importRows.length}-match league schedule through week ${lastWeek} is also saved. Publish changes to make it public.`);setRows([]);setError('');
   }catch(e){setError(e instanceof Error?e.message:'Could not add fixtures.')}
  }
  return <section className="fixture-pdf-import" aria-label="Import fixtures from PDF">
@@ -41,11 +43,13 @@ export default function FixturePdfImport({content,onChange,onBusyChange}:{conten
   <input ref={fileInput} hidden type="file" accept="application/pdf,.pdf" aria-label="Choose fixture PDF" onChange={e=>{void read(e.target.files?.[0]);e.target.value=''}}/>
   {busy&&<p role="status">Reading all fixture pages…</p>}{error&&<p className="notice error" role="alert">{error}</p>}{message&&<p className="notice success" role="status">{message}</p>}
   {!!content.leagueSchedules?.length&&<p className="hint">Published with your next save: {content.leagueSchedules.map(s=>`${s.competition} (${s.season}) · ${s.fixtures.length} league fixtures`).join('; ')}. Importing another PDF for the same competition and season replaces that full league schedule.</p>}
-  {!!rows.length&&<><p>{rows.length} league fixtures found. The full schedule will be saved for View league fixtures. Matches involving the selected PDF team will also be added to the academy calendar.</p><div className="fixture-edit-grid">
+  {!!rows.length&&<><p>{rows.length} league fixtures found. {importRows.length} matches through week {lastWeek} will be saved for View league fixtures. Matches involving the selected PDF team will also be added to the academy calendar.</p><div className="fixture-edit-grid">
+   <label>Import through week<input type="number" min={1} max={Math.max(...rows.map(r=>Number(r.round.replace(/\D/g,''))))} value={lastWeek} onChange={e=>setLastWeek(Math.max(1,Math.floor(Number(e.target.value)||1)))}/></label>
    <label>Our team in the PDF<select value={pdfTeam} onChange={e=>setPdfTeam(e.target.value)}><option value="">Choose PDF team</option>{teams.map(t=><option key={t}>{t}</option>)}</select></label>
    <label>Academy team<select value={team} onChange={e=>setTeam(e.target.value)}><option value="">Choose academy team</option>{fixtureTeams(content).map(t=><option key={t}>{t}</option>)}</select></label>
    <label>Competition<select value={competition} onChange={e=>setCompetition(e.target.value)}><option value="new">{trfaCompetition} (use or create)</option>{content.competitions?.map(c=><option value={c.id} key={c.id}>{c.name}</option>)}</select></label>
-  </div><p className="hint">Dates, home/away and venues come from the fixture rows. Kick-off defaults to 16:00 Botswana time (CAT). You can edit each fixture after importing. Existing fixtures, scores and lineups are kept; exact duplicates are skipped.</p>
+  </div><p className="hint">Dates, home/away and venues come from the fixture rows. Kick-off defaults to 16:00 Botswana time (CAT). You can edit each fixture after importing. Replacement applies to this academy team, competition and season. Matching rounds retain their match records. Other competitions are kept.</p>
+  <label><input type="checkbox" checked={replace} onChange={e=>setReplace(e.target.checked)}/> Replace existing fixtures for this team, competition and season</label>
   {!!selected.length&&<div className="table-scroll fixture-import-preview"><table className="match-table"><caption>{selected.length} fixtures for {pdfTeam}</caption><thead><tr><th>Week</th><th>Date</th><th>Home</th><th>Away</th><th>Venue</th></tr></thead><tbody>{selected.map(r=><tr key={r.number}><td>{r.round}</td><td>{r.date}</td><td>{r.home}</td><td>{r.away}</td><td>{r.venue}</td></tr>)}</tbody></table></div>}
   <div className="dialog-actions"><button type="button" className="button outline" onClick={()=>setRows([])}>Cancel import</button><button type="button" className="button navy" disabled={!selected.length||!team||busy} onClick={add}>Save league schedule + {selected.length} academy fixtures</button></div></>}
  </section>;

@@ -54,20 +54,34 @@ export function parseFixturePages(pages:{width:number;items:PdfText[]}[]):Import
  return fixtures;
 }
 
-export function prepareFixtureImport(rows:ImportedFixture[],content:Content,pdfTeam:string,academyTeam:string,competitionId:string){
+export function fixturesThroughWeek(rows:ImportedFixture[],lastWeek:number){
+ if(!Number.isInteger(lastWeek)||lastWeek<1)throw new Error('Choose a valid final week.');
+ return rows.filter(row=>{const week=/^Week (\d+)$/i.exec(row.round);return week&&Number(week[1])<=lastWeek});
+}
+
+export function prepareFixtureImport(rows:ImportedFixture[],content:Content,pdfTeam:string,academyTeam:string,competitionId:string,options:{replace?:boolean}={}){
  const competition=content.competitions?.find(c=>c.id===competitionId);
  if(!competition||!academyTeam||!pdfTeam)throw new Error('Choose the PDF team, academy team and competition first.');
  const key=(f:Pick<Fixture,'date'|'team'|'opponent'|'homeAway'|'competition'>)=>[f.date,teamKey(f.team),teamKey(f.opponent),f.homeAway,teamKey(f.competition)].join('|');
- const existing=new Set(content.fixtures.map(key));let skipped=0;
+ if(!rows.length)throw new Error('No fixtures in the selected weeks.');
+ const seasons=[...new Set(rows.map(r=>seasonForDate(r.date)))];
+ const inScope=(f:Fixture)=>teamKey(f.team)===teamKey(academyTeam)&&(f.competitionId===competition.id||(!f.competitionId&&teamKey(f.competition)===teamKey(competition.name)))&&seasons.includes(f.season||seasonForDate(f.date));
+ const replaced=options.replace?content.fixtures.filter(inScope):[];
+ const existing=new Set((options.replace?content.fixtures.filter(f=>!inScope(f)):content.fixtures).map(key));let skipped=0;
  const fixtures:Fixture[]=[];
  for(const row of rows){
   const home=teamKey(row.home)===teamKey(pdfTeam),away=teamKey(row.away)===teamKey(pdfTeam);if(!home&&!away)continue;
   const f:Fixture={id:crypto.randomUUID(),date:row.date,season:seasonForDate(row.date),time:row.time||'16:00',team:academyTeam,opponent:home?row.away:row.home,venue:row.venue,homeAway:home?'home':'away',competition:competition.name,competitionId:competition.id,round:row.round,status:'scheduled',goalsFor:null,goalsAgainst:null};
-  if(existing.has(key(f))){skipped++;continue}existing.add(key(f));fixtures.push(f);
+  if(existing.has(key(f))){skipped++;continue}existing.add(key(f));
+  const previous=replaced.find(old=>teamKey(old.opponent)===teamKey(f.opponent)&&old.homeAway===f.homeAway&&old.round===f.round);
+  fixtures.push(previous?{...previous,date:f.date,time:f.time,venue:f.venue,season:f.season,competitionId:f.competitionId,competition:f.competition}:f);
  }
- if(content.fixtures.length+fixtures.length>200)throw new Error('This import would exceed the 200-fixture limit. Remove old fixtures first.');
- const seasons=[...new Set(rows.map(r=>seasonForDate(r.date)))];
+ if(!fixtures.length&&!skipped)throw new Error('The selected PDF team has no fixtures in these weeks.');
+ const removed=replaced.filter(old=>!fixtures.some(f=>f.id===old.id));
+ if(removed.some(f=>f.status==='played'||f.status==='live'||f.goalsFor!==null||f.goalsAgainst!==null||f.match?.phase==='live'||f.match?.phase==='finished'))throw new Error('Replacement would remove a recorded match. Review those fixtures before replacing the schedule.');
+ const allFixtures=[...content.fixtures.filter(f=>!options.replace||!inScope(f)),...fixtures];
+ if(allFixtures.length>200)throw new Error('This import would exceed the 200-fixture limit. Remove old fixtures first.');
  const leagueSchedules:LeagueSchedule[]=[...(content.leagueSchedules||[]).filter(s=>s.competitionId!==competition.id||!seasons.includes(s.season)),...seasons.map(season=>({competitionId:competition.id,competition:competition.name,season,fixtures:rows.filter(r=>seasonForDate(r.date)===season).map(r=>({...r,time:r.time||'16:00'}))}))];
  if(leagueSchedules.length>20)throw new Error('The saved league schedule limit has been reached.');
- return {fixtures,skipped,leagueSchedules};
+ return {fixtures,allFixtures,skipped,replaced:replaced.length,leagueSchedules};
 }

@@ -23,7 +23,8 @@ try{
  assert.deepEqual(new Set(saved.match.bench),new Set(players.slice(5).map(p=>p.id)),'Publish automatically fills substitutes');
  assert.equal(saved.sheet.remarks,'Saved QA remarks');assert.equal(saved.match.roster[players[0].id].maId,'00QA0');
  const endpoint=base+'/api/admin/fixtures/'+f.id+'/match-sheet';
- assert.equal((await fetch(endpoint)).status,401);assert.equal((await fetch(endpoint,{headers})).status,409);
+ assert.equal((await fetch(endpoint)).status,401);assert.equal((await fetch(endpoint,{headers})).status,200);
+ const preview=await fetch(endpoint,{method:'POST',headers,body:JSON.stringify({...saved,venue:'Unsaved preview venue'})});assert.equal(preview.status,200);assert.equal((await read()).version,version,'Preview must not save or publish');
  saved={...saved,status:'played',goalsFor:1,goalsAgainst:0,match:{...saved.match,phase:'finished',minute:90,period:'second',events:[{id:crypto.randomUUID(),kind:'goal',minute:20,period:'first',playerId:players[0].id},{id:crypto.randomUUID(),kind:'substitution',minute:60,period:'second',playerId:players[1].id,replacementId:players[5].id}]}};
  content=await save({...content,fixtures:content.fixtures.map(row=>row.id===f.id?saved:row)});
  await savePlayer({...players[0],name:'Edited profile name',maId:'CHANGED'},1);

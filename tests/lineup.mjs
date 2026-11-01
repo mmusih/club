@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {lineupAvailable,publicContent,fixtureTeamName,fixtureTeams} from '../app/lineup.ts';
 const fixture={id:'one',date:'2026-10-10',time:'15:00',status:'scheduled',team:'Under 13',lineup:{formation:'2-3-1',starters:['1 Keeper','2 A','3 B','4 C','5 D','6 E','7 F'],substitutes:[]}};
-const release=Date.parse('2026-10-10T12:00:00Z');
+const release=Date.parse('2026-10-10T11:00:00Z');
 assert.equal(lineupAvailable(fixture,release-1),false);
 assert.equal(lineupAvailable(fixture,release),true);
 assert.equal(lineupAvailable(fixture,release+3600000),true);

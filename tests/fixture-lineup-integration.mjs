@@ -17,7 +17,7 @@ try {
  const uploaded=await fetch(base+'/api/upload',{method:'POST',headers:{cookie,origin:base},body:data});assert.equal(uploaded.status,200);const {url}=await uploaded.json();assert.equal((await fetch(base+url)).status,200);
  function kickoff(minutes){const local=new Date(Date.now()+minutes*60000+2*3600000).toISOString();return {date:local.slice(0,10),time:local.slice(11,16)}}
  const lineup={formation:'2-3-1',starters:['1 Keeper','2 Defender A','3 Defender B','4 Midfield A','5 Midfield B','6 Midfield C','9 Forward'],substitutes:['12 Substitute']};
- const fixture={id:'lineup-check',...kickoff(120),team:'Under 13',competition:'Preview friendly',opponent:'Preview United',venue:'Preview ground',homeAway:'home',status:'scheduled',goalsFor:null,goalsAgainst:null,teamLogo:url,opponentLogo:url,lineup};
+ const fixture={id:'lineup-check',...kickoff(180),team:'Under 13',competition:'Preview friendly',opponent:'Preview United',venue:'Preview ground',homeAway:'home',status:'scheduled',goalsFor:null,goalsAgainst:null,teamLogo:url,opponentLogo:url,lineup};
  const content={...initial.content,fixtures:[fixture]};
  for(const patch of [{teamLogo:'javascript:alert(1)'},{lineup:{...lineup,formation:'invalid'}},{lineup:{...lineup,starters:['1 Keeper']}}]){const response=await fetch(base+'/api/content',{method:'PUT',headers,body:JSON.stringify({content:{...content,fixtures:[{...fixture,...patch}]},version})});assert.equal(response.status,400)}
  await save(content);

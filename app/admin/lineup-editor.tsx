@@ -23,8 +23,6 @@ export default function LineupEditor({fixture:f,content,onChange}:{fixture:Fixtu
  const baseMatch:MatchRecord=f.match||{phase:'pre',minute:0,duration:90,period:'first',firstHalfAdded:0,secondHalfAdded:0,slots:positionsOnPitch.map(()=>''),bench:[],events:[]};
  const squad=teamSquad(content,f,players);
  const m=automaticBench(baseMatch,squad);
- // Persist automatic reserves as soon as the linked lineup is opened or refreshed.
- useEffect(()=>{if(!loading&&players.length&&(!f.lineup||f.match)&&JSON.stringify(baseMatch.bench)!==JSON.stringify(m.bench))save(m);});
  const state=replayMatch(m),slots=m.phase==='pre'?m.slots:state.slots;
  const byId=(id:string)=>players.find(p=>p.id===id);
  function label(id:string){if(isDeletedPlayer(id))return 'Deleted player';const p=byId(id);return p?`${p.number||''} ${p.name}`.trim():id?'Unavailable player':''}

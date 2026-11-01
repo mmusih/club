@@ -79,3 +79,9 @@ Open Team logos in the club dashboard to upload a badge for each academy team or
 ### Separate profile photos and headshots
 
 Upload the public profile photo and the lineup headshot independently in Player profiles. The profile photo appears on the full public profile and large squad cards. The headshot appears on the lineup pitch, substitutes, replacement choices and compact editor lists. Each image has its own preview, replace and remove controls. Save the profile, then use Refresh photos in an open lineup editor. Existing photos remain profile photos; upload a separate headshot for compact displays. Until then, those displays use a shirt/number placeholder.
+
+## Fixture replacement and BFA match sheets
+
+The PDF importer defaults to weeks 1–18. Set **Import through week** when importing corrected later dates. Replacement updates the selected academy team's competition and seasons, keeps matching fixture IDs, scores, lineups and sheet details, and removes superseded scheduled fixtures. Other competitions and seasons remain unchanged. A replacement that would remove a recorded match is blocked for review. The league schedule contains only the selected weeks.
+
+Public lineups appear two hours before kick-off in Botswana time. Administrators can preview or download a BFA-style match sheet at any time from **Match sheet & download**, including incomplete or unpublished fixtures. Available details are filled in; missing details and signatures stay blank. Downloads include match-day ages (when birth dates are recorded), MA IDs, substitutions, cards, goals, team tactics and officials. These private sheets require an administrator session. Previewing and downloading do not publish or save edits.

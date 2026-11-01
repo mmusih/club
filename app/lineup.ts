@@ -25,7 +25,7 @@ export function matchClockIssue(m:MatchRecord){
 export function lineupAvailable(f:Fixture,now=Date.now()) {
   if(!f.time || f.status==='cancelled' || f.status==='postponed') return false;
   const kickoff=Date.parse(`${f.date}T${f.time}:00+02:00`);
-  return Number.isFinite(kickoff) && now>=kickoff-60*60*1000;
+  return Number.isFinite(kickoff) && now>=kickoff-2*60*60*1000;
 }
 /** Scheduled games become live at CAT kickoff; no result or score is invented. */
 export function automaticFixture(f:Fixture,now=Date.now()):Fixture {
