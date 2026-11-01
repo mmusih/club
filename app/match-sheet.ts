@@ -3,14 +3,14 @@ import type {Player} from './player-model';
 import {isDeletedPlayer} from './player-deletion';
 import {formatMatchMinute,matchLimits} from './lineup';
 import {ageToday} from './player-eligibility';
-import {automaticBench,teamSquad} from './match-squad';
+import {replayMatch} from './match-record';
 
 /** Freeze identity at the first published match action; later profile edits do not rewrite history. */
 export function snapshotMatchPlayers(content:Content,previous:Content,players:Player[]):Content {
  const byId=new Map(players.map(p=>[p.id,p]));
  return {...content,fixtures:content.fixtures.map(f=>{
   if(!f.match)return f;
-  const match=automaticBench(f.match,teamSquad(content,f,players));
+  const match=f.match;
   const old=previous.fixtures.find(row=>row.id===f.id)?.match;
   const roster:Record<string,MatchPlayer>={};
   for(const id of [...match.slots,...match.bench].filter(Boolean)){
@@ -21,7 +21,9 @@ export function snapshotMatchPlayers(content:Content,previous:Content,players:Pl
    else if(p)roster[id]={name:p.name,number:p.number,maId:p.maId||'',age:ageToday(p.dateOfBirth||'',f.date)};
   }
   const label=(id:string)=>{const p=byId.get(id);return p?`${p.number||''} ${p.name}`.trim():'Unavailable player'};
-  return {...f,match:{...match,roster},...(match.phase==='pre'&&f.lineup?{lineup:{...f.lineup,substitutes:match.bench.map(label)}}:{})};
+  const current=match.phase==='pre'?match.slots:replayMatch(match).slots;
+  const portraits=Object.fromEntries(players.filter(p=>p.headshot&&[...match.slots,...match.bench].includes(p.id)).map(p=>[label(p.id),p.headshot!]));
+  return {...f,match:{...match,roster},...(f.lineup?{lineup:{...f.lineup,starters:current.map(id=>id?label(id):'Vacant position'),substitutes:match.bench.filter(id=>!current.includes(id)).map(label),portraits}}:{})};
  })};
 }
 

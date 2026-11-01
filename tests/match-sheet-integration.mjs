@@ -17,10 +17,10 @@ try{
   const p={...newPlayer(),name:'Sheet QA Player '+(i+1),team,ageGroup:'Senior',number:i+1,maId:'00QA'+i,dateOfBirth:'2000-01-01',status:i===0?'published':'draft',consent:i===0};
   await savePlayer(p,0);players.push(p);
  }
- const f={id:crypto.randomUUID(),date:'2026-10-29',time:'15:00',team,opponent:'Sheet QA United',competition:'QA friendly',venue:'Test ground',homeAway:'away',status:'scheduled',goalsFor:null,goalsAgainst:null,lineup:{formation:'2-2',starters:players.slice(0,5).map(p=>p.name),substitutes:[]},match:{phase:'pre',minute:0,duration:90,slots:players.slice(0,5).map(p=>p.id),bench:[],events:[]},sheet:{teamColors:'Navy',halfTimeFor:0,halfTimeAgainst:0,captainId:players[0].id,remarks:'Saved QA remarks'}};
+ const f={id:crypto.randomUUID(),date:'2026-10-29',time:'15:00',team,opponent:'Sheet QA United',competition:'QA friendly',venue:'Test ground',homeAway:'away',status:'scheduled',goalsFor:null,goalsAgainst:null,lineup:{formation:'2-2',starters:players.slice(0,5).map(p=>p.name),substitutes:[]},match:{phase:'pre',minute:0,duration:90,slots:players.slice(0,5).map(p=>p.id),bench:players.slice(5,7).map(p=>p.id),events:[]},sheet:{teamColors:'Navy',halfTimeFor:0,halfTimeAgainst:0,captainId:players[0].id,remarks:'Saved QA remarks'}};
  let content=await save({...initial.content,fixtures:[...initial.content.fixtures,f]});
  let saved=content.fixtures.find(row=>row.id===f.id);
- assert.deepEqual(new Set(saved.match.bench),new Set(players.slice(5).map(p=>p.id)),'Publish automatically fills substitutes');
+ assert.deepEqual(new Set(saved.match.bench),new Set(players.slice(5,7).map(p=>p.id)),'Publish preserves selected substitutes');
  assert.equal(saved.sheet.remarks,'Saved QA remarks');assert.equal(saved.match.roster[players[0].id].maId,'00QA0');
  const endpoint=base+'/api/admin/fixtures/'+f.id+'/match-sheet';
  assert.equal((await fetch(endpoint)).status,401);assert.equal((await fetch(endpoint,{headers})).status,200);

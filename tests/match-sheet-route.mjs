@@ -47,7 +47,7 @@ const players=Array.from({length:6},(_,i)=>({...newPlayer(),name:'Preview Player
 globalThis.sheetRoute.players=players;
 const linked={...draft,lineup:{formation:'2-2',starters:players.slice(0,5).map(p=>p.name),substitutes:[]},match:{phase:'pre',minute:0,duration:90,slots:players.slice(0,5).map(p=>p.id),bench:[],events:[],roster:{[players[0].id]:{name:'Forged snapshot',number:99,maId:'FAKE'}}}};
 const linkedResponse=await post(linked);assert.equal(linkedResponse.status,200);
-const linkedText=await pdfText(linkedResponse);assert.ok(linkedText.includes('00PRE0'));assert.ok(linkedText.includes('Preview Player 5'),'Preview includes automatic substitutes');assert.ok(!linkedText.includes('Forged snapshot'));
+const linkedText=await pdfText(linkedResponse);assert.ok(linkedText.includes('00PRE0'));assert.ok(!linkedText.includes('Preview Player 5'),'Unselected players are excluded');assert.ok((await pdfText(await post({...linked,match:{...linked.match,bench:[players[5].id]}}))).includes('Preview Player 5'),'Explicit substitutes appear in preview');assert.ok(!linkedText.includes('Forged snapshot'));
 assert.equal((await post({...linked,match:{...linked.match,bench:['missing']}})).status,200,'Unavailable profiles do not block a sheet with the remaining information');
 assert.equal(JSON.stringify(globalThis.sheetRoute.fixtures),before,'Preview does not change saved match data');
-console.log('PASS: administrator-only downloads in every match status; unsaved/new fixture previews; current MA IDs and automatic substitutes; no writes; origin, size and data validation.');
+console.log('PASS: administrator-only downloads in every match status; unsaved/new fixture previews; current MA IDs and selected substitutes; no writes; origin, size and data validation.');

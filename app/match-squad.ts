@@ -8,8 +8,11 @@ import {playerTeam} from './player-teams';
 export function teamSquad(content:Content,fixture:Fixture,players:Player[]) {
  return players.filter(p=>!eligibilityIssue(p)&&fixtureTeamName(content,playerTeam(p))===fixtureTeamName(content,fixture.team));
 }
-export function automaticBench(match:MatchRecord,roster:Pick<Player,'id'>[]):MatchRecord {
- if(match.phase!=='pre')return match;
- const bench=[...new Set([...roster.map(p=>p.id),...match.bench])].filter(id=>!match.slots.includes(id));
- return {...match,bench};
+/** The association sheet has nine reserve places. Unselected players stay in the pool. */
+export const MAX_SUBSTITUTES=9;
+export function substituteLimit(match:MatchRecord){return match.substituteLimit??MAX_SUBSTITUTES;}
+export function squadIssue(match:MatchRecord){
+ if(match.bench.length>substituteLimit(match))return `Choose at most ${substituteLimit(match)} substitutes. Remove extra players from the bench.`;
+ const ids=[...match.slots.filter(Boolean),...match.bench];
+ return new Set(ids).size!==ids.length?'A player can only occupy one squad place.':null;
 }
