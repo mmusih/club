@@ -32,7 +32,7 @@ export function newPlayer():Player{return {id:crypto.randomUUID(),version:0,upda
 export function totals(matches:PlayerData['matches']){return matches.reduce((s,m)=>({appearances:s.appearances+1,minutes:s.minutes+m.minutes,goals:s.goals+m.goals,assists:s.assists+m.assists,saves:s.saves+m.saves,yellowCards:s.yellowCards+(m.yellowCards||0),redCards:s.redCards+(m.redCards||0),injuries:s.injuries+(m.injuries||0)}),{appearances:0,minutes:0,goals:0,assists:0,saves:0,yellowCards:0,redCards:0,injuries:0});}
 export function formatDate(value:string){return new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}).format(new Date(value));}
 
-export function playerIssueMessage(issue: {path: (string|number)[]; message:string}) {
+export function playerIssueMessage(issue: {path: PropertyKey[]; message:string}) {
  const path=issue.path[0]==='player'?issue.path.slice(1):issue.path;
  const section=path[0]==='matches'?'Match':path[0]==='videos'?'Video':path[0]==='clubHistory'?'Club history':'';
  return section && typeof path[1]==='number' ? section+' '+(path[1]+1)+': '+issue.message : issue.message;
