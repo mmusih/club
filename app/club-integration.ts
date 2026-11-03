@@ -1,8 +1,9 @@
 import type {Content,Standing} from './content';
 import {academyName,brandingName,teamKey} from './team-branding';
 import {seasonForDate,seasonLabel} from './seasons';
+import {syncFixtureStandings} from './fixture-standings';
 
-/** Add missing clubs only: the editor remains responsible for official results. */
+/** Add every league club and reconcile completed fixture results with its table. */
 export function integrateClubContent(content:Content):Content {
  const c={...content,name:academyName};
  const standings=[...c.standings];
@@ -31,5 +32,5 @@ export function integrateClubContent(content:Content):Content {
   const season=f.season||seasonForDate(f.date);
   add(season,f.competition,f.team,academyName);add(season,f.competition,f.team,f.opponent);
  }
- return {...c,standings};
+ return syncFixtureStandings({...c,standings});
 }
