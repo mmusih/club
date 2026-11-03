@@ -17,6 +17,26 @@ export function formationSlots(formation:string) {
  const lines=[1,...formation.split('-').map(Number)];
  return lines.flatMap((count,row)=>Array.from({length:count},(_,column)=>({role:row===0?'Goalkeeper':row===1?'Defender':row===lines.length-1?'Forward':'Midfielder',x:(column+1)*100/(count+1),y:90-row*78/(lines.length-1)})));
 }
+
+/** Keep every player at a tactical position visible as substitutions accumulate. */
+export function tacticalPlayerHistory(match:MatchRecord) {
+ const groups:{playerId:string;entered?:MatchEvent;exited?:MatchEvent}[][]=match.slots.map(playerId=>playerId?[{playerId}]:[]);
+ const slots=[...match.slots];
+ for(const event of [...match.events].sort((a,b)=>a.minute-b.minute)){
+  if(event.minute>match.minute)continue;
+  const index=slots.indexOf(event.playerId);if(index<0)continue;
+  if(event.kind==='position'&&event.slotIndex!==undefined){
+   const target=event.slotIndex;
+   [groups[index],groups[target]]=[groups[target],groups[index]];
+   [slots[index],slots[target]]=[slots[target],slots[index]];
+  }else if(event.kind==='substitution'&&event.replacementId){
+   groups[index][groups[index].length-1].exited=event;
+   groups[index].push({playerId:event.replacementId,entered:event});
+   slots[index]=event.replacementId;
+  }
+ }
+ return groups;
+}
 export function replayMatch(match:MatchRecord,until=match.minute) {
  const slots=[...match.slots],active=new Map<string,number>(),minutes:Record<string,number>={},yellow:Record<string,number>={},dismissed=new Set<string>(),appeared=new Set<string>();
  const errors:string[]=[];

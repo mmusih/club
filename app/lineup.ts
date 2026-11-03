@@ -42,7 +42,13 @@ export function publicContent(content:Content,now=Date.now()):Content {
     const {match: privateMatch,sheet: privateSheet,...safe}=automaticFixture(f,now);
     void privateSheet;
     if(privateMatch?.phase==='live'&&(f.status==='scheduled'||f.status==='live')){safe.liveMinute=privateMatch.minute;safe.liveClock=matchPeriod(privateMatch)==='interval'?'Half-time':formatMatchMinute(privateMatch);}
-    if(lineupAvailable(f,now)) return safe;
+    if(lineupAvailable(f,now)) {
+      if(privateMatch&&safe.lineup){
+        const names=new Map([...privateMatch.slots.map((id,i)=>[id,safe.lineup!.starters[i]] as const),...privateMatch.bench.map((id,i)=>[id,safe.lineup!.substitutes[i]] as const)]);
+        safe.lineup={...safe.lineup,timeline:[...privateMatch.events].sort((a,b)=>a.minute-b.minute).map(e=>({id:e.id,kind:e.kind,time:formatMatchMinute(privateMatch,e.minute,e.period||(e.minute<=matchLimits(privateMatch).halfEnd?'first':'second')),player:names.get(e.playerId)||'Player',...(e.replacementId?{incoming:names.get(e.replacementId)||'Player'}:{})}))};
+      }
+      return safe;
+    }
     const {lineup: hidden,...visible}=safe;
     void hidden;
     return visible;

@@ -7,7 +7,7 @@ import Photo from './photo';
 import {sectionVisible} from './sections';
 import {useEffect,useState} from 'react';
 import {Dialog,DialogContent,DialogTitle,DialogDescription} from '@/components/ui/dialog';
-import {automaticFixture,fixtureTeamName,fixtureTeams,lineupAvailable,formatMatchMinute,matchPeriod} from './lineup';
+import {publicContent,automaticFixture,fixtureTeamName,fixtureTeams,lineupAvailable,formatMatchMinute,matchPeriod} from './lineup';
 import {clubToday} from './player-eligibility';
 import {inMatchView,type MatchView} from './fixture-view';
 import {ArrowUpRight,CalendarDays,ArrowRight,Newspaper} from 'lucide-react';
@@ -40,7 +40,7 @@ export function Fixtures({content:c}:{content:Content}) {
   let active=true;
   async function refresh(){
    setNow(Date.now());
-   try{const response=await fetch('/api/content',{cache:'no-store'});if(!response.ok)throw new Error();const data=await response.json();if(active){setLeagueSchedules(data.content.leagueSchedules||[]);setFixtures((data.content.fixtures||[]).map((f:Fixture)=>({...f,...(f.match?.phase==='live'&&(f.status==='scheduled'||f.status==='live')?{liveMinute:f.match.minute,liveClock:matchPeriod(f.match)==='interval'?'Half-time':formatMatchMinute(f.match)}:{})})));setLoadError(false)}}catch{if(active)setLoadError(true)}
+   try{const response=await fetch('/api/content',{cache:'no-store'});if(!response.ok)throw new Error();const data=await response.json();if(active){setLeagueSchedules(data.content.leagueSchedules||[]);setFixtures(publicContent(data.content).fixtures.map((f:Fixture)=>({...f,...(f.match?.phase==='live'&&(f.status==='scheduled'||f.status==='live')?{liveMinute:f.match.minute,liveClock:matchPeriod(f.match)==='interval'?'Half-time':formatMatchMinute(f.match)}:{})})));setLoadError(false)}}catch{if(active)setLoadError(true)}
   }
   void refresh();const timer=setInterval(refresh,15000);
   return()=>{active=false;clearInterval(timer)};
@@ -78,9 +78,10 @@ function AcademyLineup({fixture,content}:{fixture:Fixture;content:Content}){
  const lineup=fixture.lineup!;
  let offset=0;
  const rows=[1,...lineup.formation.split('-').map(Number)].map(count=>{const row=lineup.starters.slice(offset,offset+count);offset+=count;return row}).reverse();
- return <div className="academy-lineup"><div className="lineup-heading"><strong><TeamBadge name={academyName} branding={teamBranding(content)} logo={fixture.teamLogo}/></strong><span>{lineup.formation}</span></div>
+ return <div className="academy-lineup"><div className="lineup-heading"><strong>Starting lineup · <TeamBadge name={academyName} branding={teamBranding(content)} logo={fixture.teamLogo}/></strong><span>{lineup.formation}</span></div>
  {lineup.image?<Photo className="lineup-graphic" src={lineup.image} alt={fixture.team+' match lineup'}/>:<div className="lineup-pitch"><div className="pitch-circle" aria-hidden="true"/>{rows.map((row,i)=><div className="lineup-row" key={i}>{row.map((name,j)=>{const number=name.match(/^([0-9]{1,2})[.\s-]+/);return <div className="lineup-player" key={j}>{lineup.portraits?.[name]?<Photo className="lineup-headshot" src={lineup.portraits[name]} alt=""/>:<span className="lineup-shirt">{number?number[1]:'●'}</span>}<span>{number?name.slice(number[0].length):name}</span></div>})}</div>)}</div>}
  {lineup.image&&lineup.starters.length>0&&<p className="lineup-names">Starting lineup: {lineup.starters.join(' · ')}</p>}
- {lineup.substitutes.length>0&&<div className="lineup-subs"><h3>Substitutes</h3><ul>{lineup.substitutes.map((name,i)=><li key={i}>{name}</li>)}</ul></div>}
+ {lineup.substitutes.length>0&&<div className="lineup-subs"><h3>Substitutes</h3><ul>{lineup.substitutes.map((name,i)=><li key={i}>{name}{lineup.timeline?.filter(e=>e.kind==='substitution'&&(e.player===name||e.incoming===name)).map(e=><small key={e.id} className={e.player===name?'sub-out':'sub-in'}>{e.player===name?' ↓ Out ':' ↑ In '}{e.time}</small>)}</li>)}</ul></div>}
+ {lineup.timeline&&lineup.timeline.length>0&&<section className="match-log"><h3>Match events</h3>{lineup.timeline.map(e=><div key={e.id}><b>{e.time}</b>{e.kind==='substitution'?<span><span className="sub-out">↓ Out: {e.player}</span> · <span className="sub-in">↑ In: {e.incoming}</span></span>:<span>{e.player} · {e.kind==='goal'?'⚽ Goal':e.kind}</span>}</div>)}</section>}
  </div>;
 }

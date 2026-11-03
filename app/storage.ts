@@ -2,7 +2,6 @@ import {integrateClubContent} from './club-integration';
 import {publicContent} from './lineup';
 import { seed, type Content } from './content';
 import { getAdminUser } from './auth';
-import {replayMatch} from './match-record';
 import {eligibilityIssue} from './player-eligibility';
 import type {Player} from './player-model';
 import { database } from '../db/mysql';
@@ -18,8 +17,8 @@ export async function readContent(includeLineups=false) {
     const label=(id:string)=>{const p=players.find(p=>p.id===id);return p?`${p.number||''} ${p.name}`.trim():'Player'};
     data.content={...data.content,fixtures:data.content.fixtures.map(f=>{
       if(!f.match||!f.lineup)return f;
-      const slots=f.match.phase==='pre'?f.match.slots:replayMatch(f.match).slots;
-      return {...f,lineup:{formation:f.lineup.formation,starters:slots.map(id=>id?label(id):'Vacant position'),substitutes:f.match.bench.filter(id=>!slots.includes(id)).map(label),portraits:Object.fromEntries(players.filter(p=>p.headshot&&[...f.match!.slots,...f.match!.bench].includes(p.id)).map(p=>[label(p.id),p.headshot!]))}};
+      const slots=f.match.slots;
+      return {...f,lineup:{formation:f.lineup.formation,starters:slots.map(id=>id?label(id):'Vacant position'),substitutes:f.match.bench.map(label),portraits:Object.fromEntries(players.filter(p=>p.headshot&&[...f.match!.slots,...f.match!.bench].includes(p.id)).map(p=>[label(p.id),p.headshot!]))}};
     })};
   }
   return {...data,content:publicContent(data.content)};

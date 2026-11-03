@@ -2,7 +2,7 @@ import {PDFDocument,StandardFonts,rgb,pushGraphicsState,popGraphicsState,moveTo,
 import type {Content,Fixture} from './content';
 import type {Player} from './player-model';
 import {matchSheetRows} from './match-sheet';
-import {formationSlots,replayMatch} from './match-record';
+import {formationSlots} from './match-record';
 import {seasonForDate} from './seasons';
 import {matchLimits} from './lineup';
 import {bfaBadge} from './bfa-template';
@@ -96,7 +96,7 @@ export async function createMatchSheetPdf(f:Fixture,content:Content,players:Play
   page.drawImage(photo,{x:x-r,y:y-r,width:r*2,height:r*2});page.pushOperators(popGraphicsState());
   page.drawCircle({x,y,size:r,borderColor:white,borderWidth:.65});
  }
- const ids=f.match?(f.match.phase==='pre'?f.match.slots:replayMatch(f.match).slots):[];
+ const ids=f.match?.slots||[];
  const labels=formationSlots(f.lineup?.formation||'4-3-3').map((pos,i)=>{
   const id=ids[i],p=players.find(p=>p.id===id),deleted=id&&isDeletedPlayer(id),legacy=f.lineup?.starters[i]||'';
   const name=deleted?'Deleted player':p?`${p.number||''} ${p.name}`.trim():id?f.match?.roster?.[id]?.name||'Unavailable player':f.match?'':legacy;

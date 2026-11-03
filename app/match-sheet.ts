@@ -3,7 +3,6 @@ import type {Player} from './player-model';
 import {isDeletedPlayer} from './player-deletion';
 import {formatMatchMinute,matchLimits} from './lineup';
 import {ageToday} from './player-eligibility';
-import {replayMatch} from './match-record';
 
 /** Freeze identity at the first published match action; later profile edits do not rewrite history. */
 export function snapshotMatchPlayers(content:Content,previous:Content,players:Player[]):Content {
@@ -21,9 +20,9 @@ export function snapshotMatchPlayers(content:Content,previous:Content,players:Pl
    else if(p)roster[id]={name:p.name,number:p.number,maId:p.maId||'',age:ageToday(p.dateOfBirth||'',f.date)};
   }
   const label=(id:string)=>{const p=byId.get(id);return p?`${p.number||''} ${p.name}`.trim():'Unavailable player'};
-  const current=match.phase==='pre'?match.slots:replayMatch(match).slots;
+  const current=match.slots;
   const portraits=Object.fromEntries(players.filter(p=>p.headshot&&[...match.slots,...match.bench].includes(p.id)).map(p=>[label(p.id),p.headshot!]));
-  return {...f,match:{...match,roster},...(f.lineup?{lineup:{...f.lineup,starters:current.map(id=>id?label(id):'Vacant position'),substitutes:match.bench.filter(id=>!current.includes(id)).map(label),portraits}}:{})};
+  return {...f,match:{...match,roster},...(f.lineup?{lineup:{...f.lineup,starters:current.map(id=>id?label(id):'Vacant position'),substitutes:match.bench.map(label),portraits}}:{})};
  })};
 }
 
