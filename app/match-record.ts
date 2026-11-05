@@ -5,7 +5,8 @@ import {seasonForDate} from './seasons';
 /** Score corrections stay authoritative until the editor explicitly reconnects goal events. */
 export function matchFixturePatch(fixture:Fixture,next:MatchRecord):Partial<Fixture>{
  const patch:Partial<Fixture>={match:next};
- if(next.phase!==fixture.match?.phase&&next.phase!=='pre')patch.status=next.phase==='finished'?'played':'live';
+ // Recording historical events or correcting timing must not reopen a completed result.
+ if(next.phase!==fixture.match?.phase&&next.phase!=='pre'&&fixture.status!=='cancelled'&&fixture.status!=='postponed')patch.status=next.phase==='finished'||fixture.status==='played'?'played':'live';
  if(next.phase!=='pre'){
   if(fixture.scoreMode!=='manual')patch.goalsFor=next.events.filter(e=>e.kind==='goal').length;
   if(fixture.goalsAgainst===null&&next.phase!==fixture.match?.phase)patch.goalsAgainst=0;

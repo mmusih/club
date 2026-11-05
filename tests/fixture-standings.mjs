@@ -5,6 +5,7 @@ const {seed}=await import('../app/content.ts');
 const {integrateClubContent}=await import('../app/club-integration.ts');
 const {saveLeagueResult}=await import('../app/league-results.ts');
 const {contentSchema}=await import('../app/validation.ts');
+const {matchFixturePatch,recordPlayerEvent}=await import('../app/match-record.ts');
 const fixture={id:'game',date:'2026-11-01',season:'2026/27',time:'15:00',team:'Senior',competition:'League',competitionId:'league',opponent:'Rovers',venue:'Ground',homeAway:'home',status:'scheduled',goalsFor:null,goalsAgainst:null};
 const initial={...seed,competitions:[{id:'league',name:'League',kind:'league'},{id:'cup',name:'Cup',kind:'cup'}],fixtures:[fixture]};
 let c=integrateClubContent(initial);
@@ -36,3 +37,24 @@ multiple=integrateClubContent({...multiple,fixtures:multiple.fixtures.filter(f=>
 assert.equal(multiple.standings.find(r=>r.club===seed.name).points,1);
 assert.equal(multiple.standings.find(r=>r.club==='Rovers').played,1);
 console.log('PASS: completed fixtures update both clubs; live/cup exclusion; corrections, cancellations, deletion, away scores, table changes, deductions, manual-result adoption and repeated saves.');
+
+// Reproduce entering goals through the lineup after the home match was completed.
+const startingMatch={phase:'pre',minute:0,duration:90,slots:['a','b','c','d','e'],bench:[],events:[]};
+let historical=integrateClubContent({...initial,fixtures:[{...fixture,status:'played',goalsFor:0,goalsAgainst:1,match:startingMatch,lineup:{formation:'2-2',starters:['A','B','C','D','E'],substitutes:[]}}]});
+function lineupSave(match){const previous=historical.fixtures[0];historical=integrateClubContent({...historical,fixtures:[{...previous,...matchFixturePatch(previous,match)}]});}
+lineupSave(recordPlayerEvent(startingMatch,{id:'goal-81',kind:'goal',minute:81,playerId:'a'}));
+assert.equal(historical.fixtures[0].status,'played','Starting event tracking must not reopen a completed fixture');
+assert.equal(historical.standings.find(r=>r.id===academyId).points,1);
+lineupSave(recordPlayerEvent(historical.fixtures[0].match,{id:'goal-82',kind:'goal',minute:82,playerId:'b'}));
+assert.equal(historical.standings.find(r=>r.id===academyId).points,3);
+assert.equal(historical.standings.find(r=>r.id===opponentId).points,0);
+lineupSave({...historical.fixtures[0].match,phase:'finished',minute:90});
+lineupSave({...historical.fixtures[0].match,phase:'live'});
+assert.equal(historical.fixtures[0].status,'played','Correct match record must preserve the official result');
+assert.equal(historical.standings.find(r=>r.id===academyId).played,1);
+lineupSave({...historical.fixtures[0].match,events:historical.fixtures[0].match.events.slice(0,1)});
+assert.equal(historical.standings.find(r=>r.id===academyId).points,1,'Undoing a goal updates the table without removing the match');
+assert.equal(contentSchema.safeParse(historical).success,true);
+assert.deepEqual(integrateClubContent(contentSchema.parse(historical)),historical);
+for(const status of ['cancelled','postponed'])assert.equal(matchFixturePatch({...historical.fixtures[0],status},{...historical.fixtures[0].match,phase:'finished'}).status,undefined);
+console.log('PASS: historical home-match lineup entry, goal corrections, reopened event timing and save/reload retain the completed result and update both clubs.');
