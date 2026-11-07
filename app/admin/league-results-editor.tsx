@@ -1,18 +1,24 @@
 'use client';
 import {useState} from 'react';
-import type {Content,LeagueResult} from '../content';
-import {sameLeagueTable,saveLeagueResult} from '../league-results';
-import {clubToday} from '../player-eligibility';
+import type {Content} from '../content';
+import {scheduledResults,saveScheduledResult,type ScheduledResult} from '../scheduled-results';
+import {saveLeagueResult} from '../league-results';
 
 export default function LeagueResultsEditor({content:c,onChange}:{content:Content;onChange:(c:Content)=>void}){
- const [draft,setDraft]=useState<LeagueResult>({id:'',date:clubToday(),homeId:'',awayId:'',homeGoals:0,awayGoals:0});
- const [error,setError]=useState('');
- const home=c.standings.find(r=>r.id===draft.homeId);
- const label=(id:string)=>{const r=c.standings.find(r=>r.id===id);return r?`${r.club} · ${r.competition} · ${r.group} · ${r.season}`:'Removed club'};
- function save(remove?:string){try{const id=remove||draft.id||crypto.randomUUID();onChange(saveLeagueResult(c,id,remove?undefined:{...draft,id}));setError('');setDraft({...draft,id:'',homeGoals:0,awayGoals:0});}catch(e){setError(e instanceof Error?e.message:'Could not update result.')}}
- return <section className="edit-panel"><h3>League match results · all clubs</h3><p>Record matches between any two clubs, including games without Eyes On The Ball. Each result updates both clubs: played, wins, draws, losses, goals and points (3 for a win, 1 for a draw). Add missing clubs below first.</p><p className="hint">Enter only results not already included in the totals below. Completed league fixtures update this table automatically. Correct those scores in Fixtures. Editing or removing a result adjusts its previous contribution; official totals and points deductions remain editable below.</p>
- {error&&<p className="notice error" role="alert">{error}</p>}
- <div className="form-grid"><label>Match date<input type="date" value={draft.date} onChange={e=>setDraft({...draft,date:e.target.value})}/></label><label>Home club / league table<select value={draft.homeId} onChange={e=>setDraft({...draft,homeId:e.target.value,awayId:''})}><option value="">Choose club</option>{c.standings.map(r=><option key={r.id} value={r.id}>{label(r.id)}</option>)}</select></label><label>Away club<select value={draft.awayId} onChange={e=>setDraft({...draft,awayId:e.target.value})}><option value="">Choose club</option>{c.standings.filter(r=>home&&r.id!==home.id&&sameLeagueTable(home,r)).map(r=><option key={r.id} value={r.id}>{r.club}</option>)}</select></label>{(['homeGoals','awayGoals'] as const).map(key=><label key={key}>{key==='homeGoals'?'Home goals':'Away goals'}<input type="number" min={0} max={99} value={Number.isNaN(draft[key])?'':draft[key]} onChange={e=>setDraft({...draft,[key]:e.target.value===''?NaN:Number(e.target.value)})}/></label>)}</div>
- <button type="button" className="button navy" disabled={!draft.homeId||!draft.awayId||!draft.date} onClick={()=>save()}>{draft.id?'Update result':'Record result'}</button>{draft.id&&<button type="button" onClick={()=>setDraft({...draft,id:''})}>Cancel edit</button>}
- <div className="match-log">{[...(c.leagueResults||[])].sort((a,b)=>b.date.localeCompare(a.date)).map(r=><div key={r.id}><span>{r.date} · {label(r.homeId)} — {c.standings.find(s=>s.id===r.awayId)?.club} · <b>{r.homeGoals}–{r.awayGoals}</b></span>{r.fixtureId?<span>Linked fixture · edit in Fixtures</span>:<><button type="button" onClick={()=>{setDraft(r);setError('')}}>Edit</button><button type="button" onClick={()=>save(r.id)}>Remove result</button></>}</div>)}</div></section>;
+ const [filter,setFilter]=useState(''),[week,setWeek]=useState('');
+ const rows=scheduledResults(c);
+ const tableKey=(r:ScheduledResult)=>`${r.competition} · ${r.season} · ${r.group}`;
+ const tables=[...new Set(rows.map(tableKey))];
+ const selected=tables.includes(filter)?filter:tables[0]||'';
+ const matches=rows.filter(r=>tableKey(r)===selected);
+ return <section className="edit-panel"><h3>League match scores</h3><p>Find the match, enter both final scores and save the result. Played, wins, draws, losses, goals and points update automatically. Publish changes when you are ready.</p><p className="hint">Matches come from the league fixtures. Academy scores can also be updated in Fixtures or Lineup &amp; live match tracker.</p>
+ {!rows.length?<p>Import the league fixture PDF in Fixtures to see the matches here.</p>:<><div className="form-grid"><label>League table<select value={selected} onChange={e=>{setFilter(e.target.value);setWeek('')}}>{tables.map(t=><option key={t}>{t}</option>)}</select></label><label>Week / round<select value={week} onChange={e=>setWeek(e.target.value)}><option value="">All rounds</option>{[...new Set(matches.map(r=>r.round))].filter(Boolean).map(r=><option key={r}>{r}</option>)}</select></label></div>
+ {matches.filter(r=>!week||r.round===week).map(row=><ScoreRow key={`${row.key}:${row.homeGoals}:${row.awayGoals}`} row={row} content={c} onChange={onChange}/>)}</>}
+ </section>;
+}
+function ScoreRow({row,content:c,onChange}:{row:ScheduledResult;content:Content;onChange:(c:Content)=>void}){
+ const [home,setHome]=useState(row.homeGoals?.toString()??''),[away,setAway]=useState(row.awayGoals?.toString()??''),[error,setError]=useState(''),[saved,setSaved]=useState(false);
+ function save(){try{onChange(saveScheduledResult(c,row,home===''?NaN:Number(home),away===''?NaN:Number(away)));setError('');setSaved(true)}catch(e){setError(e instanceof Error?e.message:'Could not save score.')}}
+ function remove(){try{if(row.resultId)onChange(saveLeagueResult(c,row.resultId));setError('')}catch(e){setError(e instanceof Error?e.message:'Could not remove score.')}}
+ return <section className="edit-panel" aria-label={`${row.home} vs ${row.away}`}><h4>{row.home} vs {row.away}</h4><p className="hint">{row.date} {row.round&&`· ${row.round}`}{row.fixtureId?' · Academy match':''}</p><div className="form-grid"><label>{row.home} score<input type="number" min={0} max={99} step={1} value={home} onChange={e=>{setHome(e.target.value);setSaved(false)}}/></label><label>{row.away} score<input type="number" min={0} max={99} step={1} value={away} onChange={e=>{setAway(e.target.value);setSaved(false)}}/></label></div>{error&&<p className="notice error" role="alert">{error}</p>}<div className="dialog-actions"><button type="button" className="button navy" disabled={home===''||away===''} onClick={save}>Save result</button>{row.resultId&&<button type="button" onClick={remove}>Clear result</button>}</div>{(saved||row.resultId)&&<p className="hint" role="status">Result saved in this draft. Publish changes to update the website.</p>}</section>;
 }
