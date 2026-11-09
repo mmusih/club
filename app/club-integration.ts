@@ -2,16 +2,20 @@ import type {Content,Standing} from './content';
 import {academyName,brandingName,teamKey} from './team-branding';
 import {seasonForDate,seasonLabel} from './seasons';
 import {syncFixtureStandings} from './fixture-standings';
+import {saveLeagueResult} from './league-results';
 
 /** Add every league club and reconcile completed fixture results with its table. */
 export function integrateClubContent(content:Content):Content {
  const c={...content,name:academyName};
  const standings=[...c.standings];
  const identity=(season:string,competition:string,group:string,club:string)=>JSON.stringify([seasonLabel(season),competition.trim().toLowerCase(),group.trim().toLowerCase(),teamKey(brandingName(c,club))]);
+ const eligible=new Set<string>();
  const existing=new Set(standings.map(r=>identity(r.season,r.competition,r.group,r.club)));
  function add(season:string,competition:string,group:string,club:string){
   const key=identity(season,competition,group,club);
-  if(!competition||!group||existing.has(key))return;
+  if(!competition.trim()||!group.trim()||!teamKey(club))return;
+  eligible.add(key);
+  if(existing.has(key))return;
   existing.add(key);
   const row:Standing={id:'fixture-table-'+encodeURIComponent(key),season:seasonLabel(season),competition,group,club:brandingName(c,club),position:1,played:0,won:0,drawn:0,lost:0,goalsFor:0,goalsAgainst:0,points:0};
   // Compact deterministic IDs keep repeated reads/imports stable.
@@ -21,6 +25,7 @@ export function integrateClubContent(content:Content):Content {
   standings.push(row);
  }
  for(const schedule of c.leagueSchedules||[]){
+  if(c.competitions?.some(v=>v.id===schedule.competitionId&&v.kind!=='league'))continue;
   const linked=c.fixtures.filter(f=>(f.competitionId===schedule.competitionId||f.competition===schedule.competition)&&seasonLabel(f.season||seasonForDate(f.date))===seasonLabel(schedule.season));
   const groups=[...new Set(linked.map(f=>f.team))];
   if(!groups.length)groups.push(c.programmes.find(p=>/senior/i.test(p.name))?.name||academyName);
@@ -32,5 +37,12 @@ export function integrateClubContent(content:Content):Content {
   const season=f.season||seasonForDate(f.date);
   add(season,f.competition,f.team,academyName);add(season,f.competition,f.team,f.opponent);
  }
- return syncFixtureStandings({...c,standings});
+ let next=syncFixtureStandings({...c,standings});
+ const allowedIds=new Set(next.standings.filter(r=>eligible.has(identity(r.season,r.competition,r.group,r.club))).map(r=>r.id));
+ // Reverse results involving removed clubs before dropping their rows, so retained
+ // opponents do not keep points or goals from an ineligible club.
+ for(const result of next.leagueResults||[]){
+  if(!allowedIds.has(result.homeId)||!allowedIds.has(result.awayId))next=saveLeagueResult(next,result.id);
+ }
+ return {...next,standings:next.standings.filter(r=>allowedIds.has(r.id))};
 }

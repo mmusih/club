@@ -20,15 +20,15 @@ update({goalsAgainst:2});assert.equal(academy().played,1);assert.equal(academy()
 update({homeAway:'away',goalsAgainst:3});assert.equal(academy().lost,1);assert.equal(opponent().points,3);assert.equal(c.leagueResults[0].homeId,opponentId);assert.equal(c.leagueResults[0].homeGoals,3);
 update({status:'cancelled'});assert.equal(academy().played,0);assert.equal(opponent().goalsFor,0);assert.equal(c.leagueResults.length,0);
 update({status:'played'});assert.equal(academy().played,1);
-c=integrateClubContent({...c,fixtures:[]});assert.equal(academy().played,0);assert.equal(opponent().points,0);
+c=integrateClubContent({...c,fixtures:[]});assert.equal(c.standings.length,0);assert.equal(c.leagueResults.length,0);
 // Adopt an already entered match, including its original deduction, without duplication.
 c=integrateClubContent(initial);c={...c,standings:c.standings.map(r=>r.id===academyId?{...r,points:-2}:r)};
 c=saveLeagueResult(c,'manual',{id:'manual',date:fixture.date,homeId:academyId,awayId:opponentId,homeGoals:2,awayGoals:0});
 update({status:'played',goalsFor:2,goalsAgainst:0});assert.equal(academy().played,1);assert.equal(academy().points,1);assert.equal(c.leagueResults.length,1);assert.equal(c.leagueResults[0].id,'manual');assert.equal(c.leagueResults[0].fixtureId,'game');
 update({goalsAgainst:2});assert.equal(academy().points,-1);assert.equal(opponent().points,1);
-update({competitionId:'cup',competition:'Cup'});assert.equal(academy().played,0);assert.equal(academy().points,-2);assert.equal(c.leagueResults.length,0);
-update({competitionId:'league',competition:'League',team:'Under 17'});assert.equal(academy().played,0);assert.equal(c.standings.find(r=>r.group==='Under 17'&&r.club===seed.name).played,1);
-update({opponent:'United',season:'2027/28'});assert.equal(c.standings.find(r=>r.group==='Under 17'&&r.club===seed.name&&r.season==='2026/27').played,0);assert.equal(c.standings.find(r=>r.club==='United').points,1);
+update({competitionId:'cup',competition:'Cup'});assert.equal(c.standings.length,0);assert.equal(c.leagueResults.length,0);
+update({competitionId:'league',competition:'League',team:'Under 17'});assert.equal(c.standings.some(r=>r.group==='Senior'),false);assert.equal(c.standings.find(r=>r.group==='Under 17'&&r.club===seed.name).played,1);
+update({opponent:'United',season:'2027/28'});assert.equal(c.standings.some(r=>r.season==='2026/27'),false);assert.equal(c.standings.find(r=>r.club==='United').points,1);
 assert.equal(contentSchema.safeParse(c).success,true);
 let multiple=integrateClubContent({...initial,fixtures:[{...fixture,status:'played',goalsFor:3,goalsAgainst:1},{...fixture,id:'second-game',date:'2026-11-08',status:'played',goalsFor:0,goalsAgainst:0}]});
 assert.equal(multiple.standings.find(r=>r.club===seed.name).points,4);
@@ -58,3 +58,25 @@ assert.equal(contentSchema.safeParse(historical).success,true);
 assert.deepEqual(integrateClubContent(contentSchema.parse(historical)),historical);
 for(const status of ['cancelled','postponed'])assert.equal(matchFixturePatch({...historical.fixtures[0],status},{...historical.fixtures[0].match,phase:'finished'}).status,undefined);
 console.log('PASS: historical home-match lineup entry, goal corrections, reopened event timing and save/reload retain the completed result and update both clubs.');
+
+// Logo management cannot grant league membership; fixtures scope every table.
+const extra={...integrateClubContent(initial).standings[1],id:'extra',club:'Logo-only club'};
+let membership={...integrateClubContent(initial),teamLogos:[{name:extra.club,logo:''}],standings:[...integrateClubContent(initial).standings,extra]};
+membership=saveLeagueResult(membership,'extra-result',{id:'extra-result',date:'2026-11-02',homeId:academyId,awayId:extra.id,homeGoals:4,awayGoals:0});
+const cleaned=integrateClubContent(membership);
+assert.ok(!cleaned.standings.some(r=>r.club===extra.club));
+assert.equal(cleaned.standings.find(r=>r.id===academyId).points,0,'Remove result contributions against ineligible teams');
+assert.equal(cleaned.leagueResults.length,0);
+assert.equal(cleaned.teamLogos.length,1,'Logo entries remain independent from league membership');
+const schedule={competitionId:'league',competition:'League',season:'2026/27',fixtures:[{number:1,date:'2026-11-03',round:'Week 1',home:'United',away:'City',time:'16:00',venue:'Ground'}]};
+const fullLeague=integrateClubContent({...cleaned,leagueSchedules:[schedule]});
+assert.ok(fullLeague.standings.some(r=>r.club==='United'),'Other clubs qualify through imported fixtures');
+assert.ok(fullLeague.standings.some(r=>r.club==='City'));
+const wrongTable={...fullLeague.standings.find(r=>r.club==='United'),id:'wrong-season',season:'2025/26'};
+const wrongGroup={...wrongTable,id:'wrong-group',season:'2026/27',group:'Under 13'};
+assert.ok(!integrateClubContent({...fullLeague,standings:[...fullLeague.standings,wrongTable,wrongGroup]}).standings.some(r=>r.id.startsWith('wrong-')),'Membership is scoped to season and academy group');
+const cupOnly=integrateClubContent({...seed,competitions:initial.competitions,leagueSchedules:[{...schedule,competitionId:'cup',competition:'Cup'}]});
+assert.equal(cupOnly.standings.length,0,'Cup schedules do not populate league tables');
+assert.deepEqual(integrateClubContent(contentSchema.parse(fullLeague)),fullLeague,'Membership cleanup remains stable across saves');
+assert.ok(integrateClubContent({...fullLeague,deletedTeamNames:['United']}).standings.some(r=>r.club==='United'),'Deleting a logo-management team does not remove a legitimate fixture participant');
+console.log('PASS: fixture-only membership, legacy cleanup, result reversal, imported teams, season/group scope, cup exclusion and logo independence.');
