@@ -4,7 +4,7 @@ export type TeamBranding={logos:Record<string,string>;names?:Record<string,strin
 export const teamKey=(name:string)=>name.trim().toLowerCase().replace(/\b(?:f\.?\s*c\.?|football club)\s*$/i,'').replace(/[^a-z0-9]/g,'').replace(/^eyesontheball(?:academy)?$/,'eyesontheballacademy');
 export function isAcademy(c:Content,name:string){const key=teamKey(name).replace(/^u(\d+)$/,'under$1');return [c.name,academyName,'Eyes On The Ball Academy',...c.programmes.flatMap(p=>[p.name,p.ages]),...c.fixtures.map(f=>f.team)].some(n=>teamKey(n)===key);}
 export function brandingName(c:Content,name:string){return isAcademy(c,name)?academyName:name.trim();}
-export function teamNames(c:Content){const names=[academyName,...c.fixtures.map(f=>f.opponent),...c.standings.map(r=>r.club),...(c.leagueSchedules||[]).flatMap(s=>s.fixtures.flatMap(f=>[f.home,f.away])),...(c.teamLogos||[]).map(t=>t.name)];return [...new Map(names.filter(n=>n.trim()).map(n=>[teamKey(brandingName(c,n)),brandingName(c,n)])).values()].sort((a,b)=>a.localeCompare(b));}
+export function teamNames(c:Content){const names=[academyName,...c.fixtures.map(f=>f.opponent),...c.standings.map(r=>r.club),...(c.leagueSchedules||[]).flatMap(s=>s.fixtures.flatMap(f=>[f.home,f.away])),...(c.teamLogos||[]).map(t=>t.name)];return [...new Map(names.filter(n=>n.trim()&&!(c.deletedTeamNames||[]).some(deleted=>teamKey(brandingName(c,deleted))===teamKey(brandingName(c,n)))).map(n=>[teamKey(brandingName(c,n)),brandingName(c,n)])).values()].sort((a,b)=>a.localeCompare(b));}
 /** All academy divisions share one badge, regardless of legacy fixture uploads. */
 export function teamBranding(c:Content):TeamBranding{
  const logos:Record<string,string>={},names:Record<string,string>={};
@@ -21,5 +21,19 @@ export function teamBranding(c:Content):TeamBranding{
 /** Clear shared and legacy copies so deleting a badge cannot reveal an older one. */
 export function deleteTeamLogo(c:Content,name:string):Content {
  const matches=(other:string)=>teamKey(brandingName(c,other))===teamKey(brandingName(c,name));
- return {...c,...(isAcademy(c,name)?{logo:''}:{}),teamLogos:(c.teamLogos||[]).filter(t=>!matches(t.name)),fixtures:c.fixtures.map(f=>({...f,...(matches(f.team)?{teamLogo:''}:{}),...(matches(f.opponent)?{opponentLogo:''}:{})})),standings:c.standings.map(r=>matches(r.club)?{...r,logo:''}:r)};
+ return {...c,...(isAcademy(c,name)?{logo:''}:{}),teamLogos:(c.teamLogos||[]).map(t=>matches(t.name)?{...t,logo:''}:t),fixtures:c.fixtures.map(f=>({...f,...(matches(f.team)?{teamLogo:''}:{}),...(matches(f.opponent)?{opponentLogo:''}:{})})),standings:c.standings.map(r=>matches(r.club)?{...r,logo:''}:r)};
+}
+
+/** Remove a team from logo management without deleting its match history. */
+export function deleteTeam(c:Content,name:string):Content {
+ const canonical=brandingName(c,name),key=teamKey(canonical);
+ const cleared=deleteTeamLogo(c,canonical);
+ return {...cleared,teamLogos:(cleared.teamLogos||[]).filter(t=>teamKey(brandingName(c,t.name))!==key),deletedTeamNames:[...(c.deletedTeamNames||[]).filter(n=>teamKey(brandingName(c,n))!==key),canonical]};
+}
+
+/** Explicit addition also restores a previously deleted fixture-derived team. */
+export function addTeam(c:Content,name:string):Content {
+ const canonical=brandingName(c,name),key=teamKey(canonical);
+ if(!key)return c;
+ return {...c,deletedTeamNames:(c.deletedTeamNames||[]).filter(n=>teamKey(brandingName(c,n))!==key),teamLogos:(c.teamLogos||[]).some(t=>teamKey(brandingName(c,t.name))===key)?c.teamLogos:[...(c.teamLogos||[]),{name:canonical,logo:''}]};
 }

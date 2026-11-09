@@ -37,3 +37,26 @@ assert.equal(deletedAcademy.logo,'');assert.equal(deletedAcademy.fixtures[0].tea
 assert.equal(teamBranding(deletedAcademy).logos[teamKey('Rovers')],'https://example.com/rovers.png');
 assert.equal(legacyLogos.logo,c.logo,'Deleting a logo must not mutate existing content');
 console.log('PASS: deleting team logos clears academy aliases and legacy copies without changing other clubs.');
+
+const {deleteTeam,addTeam}=await import('../app/team-branding.ts');
+const {integrateClubContent}=await import('../app/club-integration.ts');
+const integrated={...c,leagueSchedules:[{competitionId:'league',competition:'League',season:'2026',fixtures:[{number:1,date:'2026-10-09',home:'Rovers FC',away:'United',venue:'Ground',round:'1',time:'15:00'}]}]};
+assert.ok(teamNames(integrated).includes('United'),'Imported away teams populate the list');
+assert.equal(teamNames(integrated).filter(n=>teamKey(n)===teamKey('Rovers')).length,1,'Fixture and imported team aliases are deduplicated');
+const removed=deleteTeam(integrated,'ROVERS FC');
+assert.ok(!teamNames(removed).some(n=>teamKey(n)===teamKey('Rovers')));
+assert.equal(removed.fixtures.length,integrated.fixtures.length,'Team deletion preserves fixtures');
+assert.deepEqual(removed.leagueSchedules,integrated.leagueSchedules,'Team deletion preserves imported schedules');
+assert.equal(teamBranding(removed).logos[teamKey('Rovers')],undefined);
+const published=contentSchema.parse(integrateClubContent(removed));
+assert.ok(!teamNames(published).some(n=>teamKey(n)===teamKey('Rovers')),'Deleted teams stay removed after publish validation and integration');
+const restored=addTeam(published,'Rovers');
+assert.ok(teamNames(restored).some(n=>teamKey(n)===teamKey('Rovers')),'Add team restores deleted teams');
+assert.equal(restored.deletedTeamNames.length,0);
+const manual=addTeam(seed,'Manual club');
+assert.ok(teamNames(deleteTeamLogo({...manual,teamLogos:[{name:'Manual club',logo:'https://example.com/logo.png'}]},'Manual club')).includes('Manual club'),'Deleting only the logo retains manually added teams');
+assert.ok(!teamNames(deleteTeam(manual,'Manual club')).includes('Manual club'));
+assert.ok(!teamNames(deleteTeam(seed,'Under 13')).includes('Eyes On The Ball Academy'),'Academy aliases can be deleted and restored');
+assert.ok(teamNames(addTeam(deleteTeam(seed,'Under 13'),'Under 13')).includes('Eyes On The Ball Academy'));
+assert.equal(contentSchema.safeParse({...seed,deletedTeamNames:['']}).success,false);
+console.log('PASS: fixture population, persistent team deletion, restoration, history preservation, and independent logo deletion.');
