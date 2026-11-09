@@ -3,10 +3,11 @@ import {academyName,brandingName,teamKey} from './team-branding';
 import {seasonForDate,seasonLabel} from './seasons';
 import {syncFixtureStandings} from './fixture-standings';
 import {saveLeagueResult} from './league-results';
+import {syncLeagueSchedules} from './league-schedule-sync';
 
 /** Add every league club and reconcile completed fixture results with its table. */
 export function integrateClubContent(content:Content):Content {
- const c={...content,name:academyName};
+ const c=syncLeagueSchedules({...content,name:academyName});
  const standings=[...c.standings];
  const identity=(season:string,competition:string,group:string,club:string)=>JSON.stringify([seasonLabel(season),competition.trim().toLowerCase(),group.trim().toLowerCase(),teamKey(brandingName(c,club))]);
  const eligible=new Set<string>();

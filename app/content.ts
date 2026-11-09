@@ -1,5 +1,5 @@
 import type {SectionVisibility} from './sections';
-export type LeagueFixture = {number:number;date:string;home:string;away:string;venue:string;round:string;time:string};
+export type LeagueFixture = {fixtureId?:string;status?:Fixture['status'];number:number;date:string;home:string;away:string;venue:string;round:string;time:string};
 export type LeagueSchedule = {competitionId:string;competition:string;season:string;fixtures:LeagueFixture[]};
 export type Competition = {id:string; name:string; kind:'league'|'playoff'|'cup'|'friendly'|'custom'};
 export type MatchEvent = {id:string; kind:'goal'|'assist'|'yellow'|'red'|'injury'|'substitution'|'position'; minute:number; period?:'first'|'second'; playerId:string; replacementId?:string; slotIndex?:number};

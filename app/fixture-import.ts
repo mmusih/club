@@ -81,7 +81,7 @@ export function prepareFixtureImport(rows:ImportedFixture[],content:Content,pdfT
  if(removed.some(f=>f.status==='played'||f.status==='live'||f.goalsFor!==null||f.goalsAgainst!==null||f.match?.phase==='live'||f.match?.phase==='finished'))throw new Error('Replacement would remove a recorded match. Review those fixtures before replacing the schedule.');
  const allFixtures=[...content.fixtures.filter(f=>!options.replace||!inScope(f)),...fixtures];
  if(allFixtures.length>200)throw new Error('This import would exceed the 200-fixture limit. Remove old fixtures first.');
- const leagueSchedules:LeagueSchedule[]=[...(content.leagueSchedules||[]).filter(s=>s.competitionId!==competition.id||!seasons.includes(s.season)),...seasons.map(season=>({competitionId:competition.id,competition:competition.name,season,fixtures:rows.filter(r=>seasonForDate(r.date)===season).map(r=>({...r,time:r.time||'16:00'}))}))];
+ const leagueSchedules:LeagueSchedule[]=[...(content.leagueSchedules||[]).filter(s=>s.competitionId!==competition.id||!seasons.includes(s.season)),...seasons.map(season=>({competitionId:competition.id,competition:competition.name,season,fixtures:rows.filter(r=>seasonForDate(r.date)===season).map(r=>{const home=teamKey(r.home)===teamKey(pdfTeam),away=teamKey(r.away)===teamKey(pdfTeam);const linked=home||away?allFixtures.find(f=>inScope(f)&&f.date===r.date&&teamKey(f.opponent)===teamKey(home?r.away:r.home)&&f.homeAway===(home?'home':'away')):undefined;return {...r,time:r.time||'16:00',...(linked?{fixtureId:linked.id}:{})}})}))];
  if(leagueSchedules.length>20)throw new Error('The saved league schedule limit has been reached.');
  return {fixtures,allFixtures,skipped,replaced:replaced.length,leagueSchedules};
 }
