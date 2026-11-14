@@ -326,3 +326,5 @@ footer{background:#edf4e4;color:var(--navy)}footer>p,footer>a,.footer-bottom{col
 .bench-drop-zone{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:12px;min-height:76px;margin-bottom:12px;padding:14px;border:2px dashed #8ba951;border-radius:6px;text-align:center;font-size:13px;color:#40562c}.bench-panel.bench-drag-active{background:#e8f6cf;outline:2px solid #597b2c}.match-workbench [draggable=true]{cursor:grab}.match-workbench [draggable=true]:active{cursor:grabbing}
 
 .captain-badge{display:inline-flex!important;align-items:center;justify-content:center;flex-shrink:0;width:20px;height:20px;border-radius:50%;background:#ffdc38;color:#10243a;font-size:12px;font-weight:800;line-height:1;border:1px solid #10243a}.lineup-player{position:relative}.lineup-player>.captain-badge{position:absolute;top:0;left:calc(50% + 12px)}.tactical-player>.captain-badge{margin-top:-20px;margin-left:34px;position:relative;z-index:2}
+
+.lineup-jersey-number{color:var(--lime);font-weight:900;white-space:nowrap}
