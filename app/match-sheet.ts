@@ -22,7 +22,7 @@ export function snapshotMatchPlayers(content:Content,previous:Content,players:Pl
   const label=(id:string)=>{const p=byId.get(id);return p?`${p.number||''} ${p.name}`.trim():'Unavailable player'};
   const current=match.slots;
   const portraits=Object.fromEntries(players.filter(p=>p.headshot&&[...match.slots,...match.bench].includes(p.id)).map(p=>[label(p.id),p.headshot!]));
-  return {...f,match:{...match,roster},...(f.lineup?{lineup:{...f.lineup,starters:current.map(id=>id?label(id):'Vacant position'),substitutes:match.bench.map(label),portraits}}:{})};
+  return {...f,...(match.phase==='pre'&&f.sheet?.captainId&&!match.slots.includes(f.sheet.captainId)?{sheet:{...f.sheet,captainId:''}}:{}),match:{...match,roster},...(f.lineup?{lineup:{...f.lineup,starters:current.map(id=>id?label(id):'Vacant position'),substitutes:match.bench.map(label),portraits}}:{})};
  })};
 }
 

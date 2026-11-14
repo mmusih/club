@@ -114,3 +114,7 @@ In a player’s Match statistics, add a goal or assist detail and choose the tea
 Minutes, saves, cards and injuries remain individual to each player. Match-tracker records already feed all selected players automatically; edit those records in Fixtures. New teammate match records start with zero minutes until confirmed. A save updates every connected profile together; if another editor has changed a linked profile, reopen its latest version before editing it.
 
 View league fixtures shows the complete imported league schedule, with competition/season and week filters. On phones, swipe the table horizontally to see away teams, kick-off times and venues.
+
+### Match captain
+
+Choose Captain in Lineup & live match tracker or Match sheet & download, or tap a starting player and choose Make captain. Both controls use the same selection. A C badge appears on the editor pitch, public lineup and PDF tactical layout; the PDF player register marks the name with (C). Publish to save and display changes. Removing the captain from the starting lineup before match tracking starts clears the selection and shows a reminder to choose another. Position changes and substitutions preserve the original match captain. The public captain marker follows the same two-hour release as the lineup.

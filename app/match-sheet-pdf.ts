@@ -71,8 +71,9 @@ export async function createMatchSheetPdf(f:Fixture,content:Content,players:Play
  cell('Starting Team',0,185,6,12,true,grey);cell('',6,185,4,12,false,grey);
  function row(p:typeof rows.starters[number]|undefined,n:number,y:number){
   const profile=players.find(player=>player.id===p?.id),photo=profile?.headshot?portraits.get(profile.headshot):undefined;
-  cells([n,p?.number,photo?'':p?.name,p?.age,p?.maId,p?.in,p?.out,p?.yellow,p?.red,p?.goals],columns,y,rowHeight);
-  if(photo){const size=Math.min(11,rowHeight*.85);page.drawImage(photo,{x:left+54,y:H-y-(rowHeight+size)/2,width:size,height:size});box(p?.name,left+55+size,y,172-size,rowHeight,7)}
+  const playerName=p?.name? p.name+(p.id===sheet.captainId?' (C)':''):'';
+  cells([n,p?.number,photo?'':playerName,p?.age,p?.maId,p?.in,p?.out,p?.yellow,p?.red,p?.goals],columns,y,rowHeight);
+  if(photo){const size=Math.min(11,rowHeight*.85);page.drawImage(photo,{x:left+54,y:H-y-(rowHeight+size)/2,width:size,height:size});box(playerName,left+55+size,y,172-size,rowHeight,7)}
  }
  for(let i=0;i<11;i++)row(rows.starters[i],i+1,197+i*rowHeight);
  section('Substitutes',benchTop);for(let i=0;i<reserveRows;i++)row(rows.substitutes[i],i+12,benchTop+12+i*rowHeight);
@@ -108,6 +109,7 @@ export async function createMatchSheetPdf(f:Fixture,content:Content,players:Play
   const x=px+p.x/100*pw,top=py+16+(p.y-12)/78*(ph-50),photo=portraits.get(p.photo),radius=diameter/2;
   if(photo)circularPhoto(photo,x,top,radius);
   else{page.drawCircle({x,y:H-top,size:radius,color:grey,borderColor:white,borderWidth:.65});box(p.number||'+',x-radius,top-radius,diameter,diameter,10,true,true)}
+  if(p.id&&p.id===sheet.captainId){page.drawCircle({x:x+radius,y:H-top+radius-2,size:5,color:yellow});box('C',x+radius-5,top-radius-3,10,10,7,true,true)}
   const rowCount=labels.filter(pos=>pos.y===p.y).length,labelWidth=Math.min(120,pw/(rowCount+1)-4);
   box(p.name,x-labelWidth/2,top+radius,labelWidth,labelHeight,lineCount>4?6:7,true,true,white);
  }
